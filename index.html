@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>App de Expedição</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --azul: #1565c0;
+  --azul-escuro: #0d3c61;
+  --verde: #2e7d32;
+  --laranja: #e65100;
+  --cinza-bg: #f4f6f8;
+  --cinza-borda: #dfe3e8;
+
+  --ml-cor: #d4a017;
+  --ml-cor-escura: #8a6a0c;
+  --ml-texto: #1c1502;
+
+  --sh-cor: #ee4d2d;
+  --sh-cor-escura: #b8351a;
+  --sh-texto: #ffffff;
+
+  --info-cor: #1565c0;
+}
+
+*,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  font-family: 'Montserrat', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--cinza-bg);
+  color: #1c2a36;
+}
+
+body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+
+/* ── HEADER ── */
+header {
+  background: var(--azul-escuro);
+  color: #fff;
+  padding: 14px 16px;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 10;
+}
+header .header-actions { display: flex; gap: 8px; }
+header .icobtn {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #fff;
+}
+header .icobtn:active { filter: brightness(1.3); }
+
+/* ── ABAS (topo) ── */
+nav.tabs {
+  display: flex;
+  background: #fff;
+  border-bottom: 1px solid var(--cinza-borda);
+  flex-shrink: 0;
+  z-index: 9;
+}
+nav.tabs button {
+  flex: 1;
+  padding: 12px 4px;
+  border: none;
+  background: none;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7785;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  transition: color .2s, border-color .2s;
+}
+nav.tabs button.active { color: var(--azul); border-bottom-color: var(--azul); }
+nav.tabs button[data-tab="ml"].active { color: var(--ml-cor-escura); border-bottom-color: var(--ml-cor); }
+nav.tabs button[data-tab="sh"].active { color: var(--sh-cor-escura); border-bottom-color: var(--sh-cor); }
+
+/* ── PANELS ── */
+.panel { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; }
+.panel.active { display: flex; }
+
+/* ── DASHBOARD ── */
+.dash-body { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 90px; }
+.grid-dash {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  text-align: center;
+}
+.card .valor { font-size: 28px; font-weight: 700; color: var(--azul-escuro); }
+.card .rotulo { font-size: 12px; color: #6b7785; margin-top: 4px; text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
+.card.full { grid-column: 1 / -1; }
+.card.full .valor { color: var(--verde); }
+.card.ml-card .valor { color: var(--ml-cor-escura); }
+.card.sh-card .valor { color: var(--sh-cor-escura); }
+
+/* ── BUSCA / LISTA ── */
+.list-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 10px 10px 6px;
+  gap: 8px;
+}
+.search-bar { display: flex; gap: 8px; flex-shrink: 0; }
+.search-bar input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cinza-borda);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  background: #fff;
+  color: #1c2a36;
+  outline: none;
+  transition: border-color .2s;
+}
+.search-bar input:focus { border-color: var(--azul); }
+#tab-ml .search-bar input:focus { border-color: var(--ml-cor); }
+#tab-sh .search-bar input:focus { border-color: var(--sh-cor); }
+
+/* ── LISTA DE CARDS ── */
+.qlist {
+  flex: 1;
+  overflow-y: auto;
+  background: transparent;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 80px;
+}
+.empty { padding: 30px 16px; text-align: center; color: #6b7785; font-size: 12px; line-height: 1.8; }
+.loading { text-align: center; padding: 30px; color: #6b7785; font-size: 13px; }
+
+/* item de lista */
+.qi {
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.qi-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.qi-id { font-size: 13px; font-weight: 700; color: #1c2a36; }
+.qi-loja { font-size: 11px; color: #6b7785; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+.qi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: #51606e; }
+.qi-grid b { color: #1c2a36; font-weight: 600; }
+
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.badge.ok { background: #e6f4ea; color: var(--verde); }
+.badge.pend { background: #fdecea; color: #c62828; }
+.hi { background: rgba(21,101,192,.18); border-radius: 2px; padding: 0 1px; }
+
+/* ── FAB BAR ── */
+.fab-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px 16px;
+  background: linear-gradient(to top, var(--cinza-bg) 70%, transparent);
+  flex-shrink: 0;
+}
+.panel { position: relative; }
+.fab-bar button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 30px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+  transition: filter .15s;
+}
+.fab-bar button:active { filter: brightness(.9); }
+#tab-ml .btn-scan, #tab-ml .btn-add { background: var(--ml-cor); color: var(--ml-texto); }
+#tab-sh .btn-scan, #tab-sh .btn-add { background: var(--sh-cor); color: var(--sh-texto); }
+
+/* ── SETUP OVERLAY ── */
+#setup-ov {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,30,50,0.96);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+.setup-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.setup-box h2 { font-size: 17px; font-weight: 800; color: var(--verde); margin-bottom: 4px; }
+.setup-box p { font-size: 12px; color: #6b7785; margin-bottom: 14px; line-height: 1.8; }
+.steps {
+  background: var(--cinza-bg);
+  border: 1px solid var(--cinza-borda);
+  border-radius: 8px;
+  padding: 11px 13px;
+  margin-bottom: 14px;
+  font-size: 11px;
+  color: #51606e;
+  line-height: 2;
+}
+.steps strong { color: var(--azul); }
+label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: #6b7785;
+  margin-bottom: 4px;
+}
+.setup-in {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--cinza-borda);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #1c2a36;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 11px;
+  transition: border-color .2s;
+}
+.setup-in:focus { border-color: var(--azul); }
+.savebtn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 9px;
+  background: var(--verde);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.togbtn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--azul);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--azul);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.codearea { display: none; margin-top: 10px; }
+.codearea textarea {
+  width: 100%;
+  background: #f4f6f8;
+  border: 1px solid var(--cinza-borda);
+  border-radius: 7px;
+  padding: 10px;
+  color: #1c6e3b;
+  font-family: monospace;
+  font-size: 9.5px;
+  line-height: 1.6;
+  height: 220px;
+  resize: none;
+  outline: none;
+}
+.copybtn {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--cinza-borda);
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7785;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+/* ── MODAL ITEM AVULSO ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 60; }
+.overlay.show { display: flex; }
+.sheet {
+  background: #fff;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px 16px 0 0;
+  padding: 18px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.sheet h3 { margin-bottom: 4px; font-size: 15px; font-weight: 800; color: #1c2a36; }
+.sheet label { font-size: 11px; color: #51606e; font-weight: 600; display: block; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .4px; }
+.sheet .setup-in { margin-bottom: 0; }
+.sheet-actions { display: flex; gap: 10px; margin-top: 16px; }
+.sheet-actions button {
+  flex: 1;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-salvar { background: var(--verde); color: #fff; }
+.btn-cancelar { background: #eceff1; color: #37474f; }
+
+/* ── SCANNER TELA CHEIA ── */
+#scanOverlay { position: fixed; inset: 0; background: #000; z-index: 120; display: none; flex-direction: column; }
+#scanOverlay.show { display: flex; }
+.scan-header {
+  color: #fff;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--azul-escuro);
+  flex-shrink: 0;
+}
+.scan-header span.step { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 8px; color: #90caf9; }
+.rbox { position: relative; flex: 1; width: 100%; background: #000; overflow: hidden; }
+.rbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .07s; z-index: 5; }
+.flash.fg { background: rgba(46,125,50,.35); opacity: 1; }
+.flash.fr { background: rgba(198,40,40,.35); opacity: 1; }
+.scan-info-box {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  border-top: 1px solid #333;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+.scan-info-box b { color: #4caf50; }
+.scan-footer { padding: 12px; display: flex; gap: 10px; background: #111; flex-shrink: 0; }
+.scan-footer button {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  color: #fff;
+}
+.btn-cancelar-scan { background: #37474f; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #263238;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 30px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity .25s;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup-ov">
+  <div class="setup-box">
+    <h2>📦 App de Expedição</h2>
+    <p>Configure a URL do Google Apps Script Web App para ler/gravar na planilha.</p>
+    <div class="steps">
+      <strong>1.</strong> Cole o código do Code.gs na planilha (Extensões → Apps Script)<br>
+      <strong>2.</strong> Implantar → Nova implantação → App da Web<br>
+      &nbsp;&nbsp;&nbsp;• Executar como: <strong>Eu</strong> · Acesso: <strong>Qualquer pessoa</strong><br>
+      <strong>3.</strong> Copie a URL (.../exec) e cole abaixo
+    </div>
+    <label>URL do Web App</label>
+    <input class="setup-in" id="cfg-url" placeholder="https://script.google.com/macros/s/.../exec">
+    <label>Nome da aba — Mercado Livre</label>
+    <input class="setup-in" id="cfg-ml" placeholder="MERCADO_LIVRE">
+    <label>Nome da aba — Shopee</label>
+    <input class="setup-in" id="cfg-sh" placeholder="SHOPEE">
+    <label>Nome da aba — Info (dashboard)</label>
+    <input class="setup-in" id="cfg-info" placeholder="INFO">
+    <button class="savebtn" onclick="saveConfig()">✓ Salvar e Abrir</button>
+    <button class="togbtn" onclick="toggleScript()">📋 Ver código do Apps Script</button>
+    <div class="codearea" id="code-area">
+      <textarea id="script-code" readonly></textarea>
+      <button class="copybtn" onclick="copyScript()">📋 Copiar código</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <span>📦 App de Expedição</span>
+  <div class="header-actions">
+    <button class="icobtn" onclick="carregarTudo()" title="Atualizar">🔄</button>
+    <button class="icobtn" onclick="openConfig()">⚙</button>
+  </div>
+</header>
+
+<!-- ABAS (topo) -->
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="info" onclick="goTab('info')">INFO</button>
+  <button class="tab-btn" data-tab="ml" onclick="goTab('ml')">MERCADO LIVRE</button>
+  <button class="tab-btn" data-tab="sh" onclick="goTab('sh')">SHOPEE</button>
+</nav>
+
+<!-- ABA INFO -->
+<div class="panel active" id="tab-info">
+  <div class="dash-body">
+    <div class="grid-dash" id="dashGrid"><div class="loading">Carregando...</div></div>
+  </div>
+</div>
+
+<!-- ABA MERCADO LIVRE -->
+<div class="panel" id="tab-ml">
+  <div class="list-body">
+    <div class="search-bar">
+      <input id="busca-ml" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('ml', this.value)" autocomplete="off">
+    </div>
+    <div class="qlist" id="qlist-ml"><div class="empty">Carregando...</div></div>
+  </div>
+  <div class="fab-bar">
+    <button class="btn-scan" onclick="abrirScanner('ml')">📷 Scan</button>
+    <button class="btn-add" onclick="abrirModalAvulso('ml')">➕ Item avulso</button>
+  </div>
+</div>
+
+<!-- ABA SHOPEE -->
+<div class="panel" id="tab-sh">
+  <div class="list-body">
+    <div class="search-bar">
+      <input id="busca-sh" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('sh', this.value)" autocomplete="off">
+    </div>
+    <div class="qlist" id="qlist-sh"><div class="empty">Carregando...</div></div>
+  </div>
+  <div class="fab-bar">
+    <button class="btn-scan" onclick="abrirScanner('sh')">📷 Scan</button>
+    <button class="btn-add" onclick="abrirModalAvulso('sh')">➕ Item avulso</button>
+  </div>
+</div>
+
+<!-- MODAL ITEM AVULSO -->
+<div class="overlay" id="overlayAvulso">
+  <div class="sheet">
+    <h3 id="avulsoTitulo">Adicionar item avulso</h3>
+    <label style="margin-top:14px">ID_ENVIO</label>
+    <input class="setup-in" id="av_idEnvio">
+    <label>ID_VENDA</label>
+    <input class="setup-in" id="av_idVenda">
+    <label>Loja</label>
+    <input class="setup-in" id="av_loja">
+    <label>Pedido</label>
+    <input class="setup-in" id="av_pedido">
+    <div class="sheet-actions">
+      <button class="btn-cancelar" onclick="fecharModalAvulso()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvarAvulso()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER TELA CHEIA -->
+<div id="scanOverlay">
+  <div class="scan-header">
+    <span id="scanTitulo">Escaneie o ID_ENVIO</span>
+    <span class="step" id="scanStep">Passo 1 de 2</span>
+  </div>
+  <div class="rbox">
+    <video id="scanVideo" autoplay muted playsinline></video>
+    <div class="flash" id="scanFlash"></div>
+  </div>
+  <div class="scan-info-box" id="scanInfoBox">Aponte a câmera para o código de barras do envio.</div>
+  <div class="scan-footer">
+    <button class="btn-cancelar-scan" onclick="cancelarScan()">Cancelar</button>
+    <button class="btn-salvar" id="btnSalvarScan" style="display:none;" onclick="salvarScan()">Salvar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// BACKEND (Apps Script) — copiável na tela de config
+// ════════════════════════════════════════
+const SCRIPT_CODE = `function doGet(e) {
+  var p = (e && e.parameter) ? e.parameter : {};
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (p.action === 'dashboard') {
+      var rawSheet = p.sheet;
+      if (Array.isArray(rawSheet)) { rawSheet = rawSheet[0]; }
+      var sheetName = rawSheet ? String(rawSheet).trim() : 'INFO';
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) return out({ error: 'Aba ' + sheetName + ' não encontrada' });
+      var values = sheet.getDataRange().getValues();
+      var headers = values[0].map(function (h) { return String(h).trim(); });
+      var vals = values[1] || [];
+      function v(nome) { var i = headers.findIndex(function(h){ return String(h).trim().toUpperCase() === nome.toUpperCase(); }); return i === -1 ? 0 : (vals[i] || 0); }
+      return out({ totalML: v('TOTAL MERCADO'), totalSH: v('TOTAL SHOPEE'), mlDome: v('ML DOME'), mlAmazzo: v('ML AMAZZO'), shDome: v('SH DOME'), shAmazzo: v('SH AMAZZO') });
+    }
+    if (p.action === 'list') {
+      var rawSheetList = p.sheet;
+      if (Array.isArray(rawSheetList)) { rawSheetList = rawSheetList[0]; }
+      var sheetNameList = rawSheetList ? String(rawSheetList).trim() : '';
+      if (!sheetNameList) return out({ rows: [] });
+      var sheet2 = ss.getSheetByName(sheetNameList);
+      if (!sheet2) return out({ rows: [] });
+      var values2 = sheet2.getDataRange().getValues();
+      if (values2.length < 2) return out({ rows: [] });
+      var headers2 = values2[0];
+      var rows = values2.slice(1).map(function (r, i) {
+        var o = {}; headers2.forEach(function (h, idx) { o[h] = r[idx] !== undefined ? r[idx] : ''; }); o._row = i + 2; return o;
+      }).filter(function (o) { return o.ID_ENVIO !== '' && o.ID_ENVIO !== null; });
+      return out({ rows: rows });
+    }
+    if (p.action === 'find') {
+      var rawSheetFind = p.sheet;
+      if (Array.isArray(rawSheetFind)) { rawSheetFind = rawSheetFind[0]; }
+      var sheetNameFind = rawSheetFind ? String(rawSheetFind).trim() : '';
+      var sheet3 = ss.getSheetByName(sheetNameFind);
+      if (!sheet3) return out({ item: null });
+      var values3 = sheet3.getDataRange().getValues();
+      var headers3 = values3[0];
+      var headersUpper3 = headers3.map(function(h){ return String(h).trim().toUpperCase(); });
+      var idCol = headersUpper3.indexOf('ID_ENVIO');
+      for (var i = 1; i < values3.length; i++) {
+        if (String(values3[i][idCol]).trim() === String(p.id).trim()) {
+          var o2 = {}; headers3.forEach(function (h, idx) { o2[h] = values3[i][idx]; }); o2._row = i + 1; return out({ item: o2 });
+        }
+      }
+      return out({ item: null });
+    }
+    return out({ status: 'online' });
+  } catch (err) { return out({ error: err.toString() }); }
+}
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetNamePost = data.sheet ? String(data.sheet).trim() : '';
+    var sheet = ss.getSheetByName(sheetNamePost);
+    if (!sheet) return out({ success: false, error: 'Aba não encontrada: ' + sheetNamePost });
+    if (data.action === 'saveScan') {
+      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var headersUpper = headers.map(function(h){ return String(h).trim().toUpperCase(); });
+      var colPedido = headersUpper.indexOf('PEDIDO') + 1;
+      var colData = headersUpper.indexOf('DATA_BAIXA') + 1;
+      if (colPedido === 0 || colData === 0) return out({ success: false, error: 'Colunas Pedido/Data_baixa não encontradas' });
+      var now = new Date();
+      var formatted = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+      sheet.getRange(data.row, colPedido).setValue(data.pedido);
+      sheet.getRange(data.row, colData).setValue(formatted);
+      return out({ success: true, data: formatted });
+    }
+    if (data.action === 'addItem') {
+      var headers2 = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var item = data.item || {};
+      var now2 = new Date();
+      var formatted2 = Utilities.formatDate(now2, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+      var row = headers2.map(function (h) { 
+        var headUpper = String(h).trim().toUpperCase();
+        if (headUpper === 'DATA_BAIXA') return formatted2; 
+        return item[headUpper] || item[String(h).trim()] || ''; 
+      });
+      sheet.appendRow(row);
+      return out({ success: true });
+    }
+    return out({ success: false, error: 'Ação desconhecida: ' + data.action });
+  } catch (err) { return out({ success: false, error: err.toString() }); }
+}
+function out(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }`;
+
+document.getElementById('script-code').value = SCRIPT_CODE;
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let cfg = { url:'', ml:'MERCADO LIVRE', sh:'SHOPEE', info:'INFO' };
+let dadosML = [], dadosSH = [];
+let activeTab = 'info';
+
+let videoStream = null;
+let detector = null;
+let rafId = null;
+let scanEtapa = 1;
+let scanTab = '';
+let linhaEncontrada = null;
+let pedidoEscaneado = '';
+
+// ════════════════════════════════════════
+// CONFIG / PERSISTÊNCIA
+// ════════════════════════════════════════
+function saveConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  if (!url) { alert('Cole a URL do Web App.'); return; }
+  cfg = {
+    url,
+    ml: document.getElementById('cfg-ml').value.trim() || 'MERCADO LIVRE',
+    sh: document.getElementById('cfg-sh').value.trim() || 'SHOPEE',
+    info: document.getElementById('cfg-info').value.trim() || 'INFO'
+  };
+  localStorage.setItem('expedicao_cfg', JSON.stringify(cfg));
+  document.getElementById('setup-ov').style.display = 'none';
+  carregarTudo();
+}
+function openConfig() {
+  document.getElementById('cfg-url').value = cfg.url || '';
+  document.getElementById('cfg-ml').value = cfg.ml || '';
+  document.getElementById('cfg-sh').value = cfg.sh || '';
+  document.getElementById('cfg-info').value = cfg.info || '';
+  document.getElementById('setup-ov').style.display = 'flex';
+}
+function toggleScript() { const el = document.getElementById('code-area'); el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+function copyScript() { navigator.clipboard.writeText(SCRIPT_CODE).then(() => toast('Código copiado!')); }
+
+window.onload = () => {
+  const saved = localStorage.getItem('expedicao_cfg');
+  if (saved) { cfg = { ...cfg, ...JSON.parse(saved) }; }
+  if (cfg.url) {
+    document.getElementById('setup-ov').style.display = 'none';
+    carregarTudo();
+  }
+};
+
+// ════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════
+function goTab(t) {
+  activeTab = t;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.add('active');
+}
+
+// ════════════════════════════════════════
+// CARREGAMENTO DE DADOS
+// ════════════════════════════════════════
+async function carregarTudo() {
+  if (!cfg.url) return;
+  toast('Atualizando dados...');
+  await fetchDashboard();
+  await fetchList('ml');
+  await fetchList('sh');
+}
+
+async function fetchDashboard() {
+  try {
+    const res = await fetch(`${cfg.url}?action=dashboard&sheet=${encodeURIComponent(cfg.info)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    renderDashboard(d);
+  } catch(e) {
+    console.error('Dashboard error:', e);
+    document.getElementById('dashGrid').innerHTML = `<div class="loading">Erro ao carregar dashboard.<br><small>${e.message}</small></div>`;
+  }
+}
+
+async function fetchList(tab) {
+  const sheetName = tab === 'ml' ? cfg.ml : cfg.sh;
+  const label = tab === 'ml' ? 'Mercado Livre' : 'Shopee';
+  const el = document.getElementById('qlist-' + tab);
+  el.innerHTML = '<div class="empty">Carregando...</div>';
+  try {
+    const res = await fetch(`${cfg.url}?action=list&sheet=${encodeURIComponent(sheetName)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    if (d.error) throw new Error(d.error);
+    if (tab === 'ml') dadosML = d.rows || []; else dadosSH = d.rows || [];
+    renderLista(tab, tab === 'ml' ? dadosML : dadosSH);
+  } catch(e) {
+    console.error(`Erro aba ${label}:`, e);
+    el.innerHTML = `<div class="empty">Erro ao carregar ${label}.<br><small>Aba: <b>${sheetName}</b><br>${e.message}</small></div>`;
+  }
+}
+
+function renderDashboard(d) {
+  if (d.error) { document.getElementById('dashGrid').innerHTML = `<div class="loading">${d.error}</div>`; return; }
+  document.getElementById('dashGrid').innerHTML =
+    `<div class="card full"><div class="valor">${d.totalML || 0}</div><div class="rotulo">Total Mercado Livre</div></div>
+     <div class="card full"><div class="valor">${d.totalSH || 0}</div><div class="rotulo">Total Shopee</div></div>
+     <div class="card ml-card"><div class="valor">${d.mlDome || 0}</div><div class="rotulo">ML Dome</div></div>
+     <div class="card ml-card"><div class="valor">${d.mlAmazzo || 0}</div><div class="rotulo">ML Amazzo</div></div>
+     <div class="card sh-card"><div class="valor">${d.shDome || 0}</div><div class="rotulo">SH Dome</div></div>
+     <div class="card sh-card"><div class="valor">${d.shAmazzo || 0}</div><div class="rotulo">SH Amazzo</div></div>`;
+}
+
+function renderLista(tab, lista) {
+  const el = document.getElementById('qlist-' + tab);
+  if (!lista.length) { el.innerHTML = '<div class="empty">Nenhum item pendente ou encontrado.</div>'; return; }
+  el.innerHTML = lista.map(item => itemHTML(item, '')).join('');
+}
+
+function campo(item, nome) {
+  if (item[nome] !== undefined && item[nome] !== '') return item[nome];
+  const u = nome.toUpperCase();
+  if (item[u] !== undefined && item[u] !== '') return item[u];
+  return '';
+}
+
+function itemHTML(item, term) {
+  const pedido    = campo(item, 'PEDIDO');
+  const dataBaixa = campo(item, 'DATA_BAIXA');
+  const idEnvio   = campo(item, 'ID_ENVIO');
+  const idVenda   = campo(item, 'ID_VENDA');
+  const loja      = campo(item, 'LOJA');
+  const completo  = pedido && dataBaixa;
+  const badge = completo ? '<span class="badge ok">Baixado</span>' : '<span class="badge pend">Pendente</span>';
+  return `<div class="qi">
+    <div class="qi-top"><span class="qi-id">${hl(idEnvio, term)}</span>${badge}</div>
+    <div class="qi-loja">${hl(loja || '-', term)}</div>
+    <div class="qi-grid">
+      <div>Venda: <b>${hl(idVenda || '-', term)}</b></div>
+      <div>Pedido: <b>${hl(pedido || '-', term)}</b></div>
+      <div style="grid-column:1/-1">Data baixa: <b>${dataBaixa || '-'}</b></div>
+    </div>
+  </div>`;
+}
+
+function filtrar(tab, termo) {
+  const base = tab === 'ml' ? dadosML : dadosSH;
+  const t = termo.trim().toLowerCase();
+  const el = document.getElementById('qlist-' + tab);
+  if (!t) { renderLista(tab, base); return; }
+  const filtrado = base.filter(item => Object.keys(item).some(k => String(item[k] || '').toLowerCase().includes(t)));
+  if (!filtrado.length) { el.innerHTML = `<div class="empty">Sem resultados para "${esc(termo)}"</div>`; return; }
+  el.innerHTML = filtrado.map(item => itemHTML(item, t)).join('');
+}
+
+// ════════════════════════════════════════
+// ITEM AVULSO
+// ════════════════════════════════════════
+let avulsoTab = '';
+function abrirModalAvulso(tab) {
+  avulsoTab = tab;
+  document.getElementById('avulsoTitulo').textContent = 'Adicionar item avulso — ' + (tab === 'ml' ? 'Mercado Livre' : 'Shopee');
+  document.getElementById('overlayAvulso').classList.add('show');
+}
+function fecharModalAvulso() {
+  document.getElementById('overlayAvulso').classList.remove('show');
+  ['av_idEnvio','av_idVenda','av_loja','av_pedido'].forEach(id => document.getElementById(id).value = '');
+}
+async function salvarAvulso() {
+  const item = {
+    ID_ENVIO: document.getElementById('av_idEnvio').value.trim(),
+    ID_VENDA: document.getElementById('av_idVenda').value.trim(),
+    LOJA: document.getElementById('av_loja').value.trim(),
+    PEDIDO: document.getElementById('av_pedido').value.trim()
+  };
+  if (!item.ID_ENVIO) { toast('Informe o ID_ENVIO'); return; }
+  const sheetName = avulsoTab === 'ml' ? cfg.ml : cfg.sh;
+  try {
+    toast('Salvando...');
+    await fetch(cfg.url, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+      body: JSON.stringify({ action: 'addItem', sheet: sheetName, item: item }) 
+    });
+    toast('Item avulso adicionado!');
+    fecharModalAvulso();
+    setTimeout(() => fetchList(avulsoTab), 1000);
+  } catch(e) { 
+    console.error(e);
+    toast('Erro ao salvar item avulso'); 
+  }
+}
+
+// ════════════════════════════════════════
+// SCANNER — câmera nativa + BarcodeDetector
+// ════════════════════════════════════════
+async function abrirScanner(tab) {
+  if (!('BarcodeDetector' in window)) {
+    toast('Seu navegador não suporta leitura nativa de código. Use Chrome no Android.');
+    return;
+  }
+  scanTab = tab;
+  scanEtapa = 1;
+  linhaEncontrada = null;
+  pedidoEscaneado = '';
+  document.getElementById('scanTitulo').textContent = 'Escaneie o ID_ENVIO';
+  document.getElementById('scanStep').textContent = 'Passo 1 de 2';
+  document.getElementById('scanInfoBox').innerHTML = 'Aponte a câmera para o código de barras do envio.';
+  document.getElementById('btnSalvarScan').style.display = 'none';
+  document.getElementById('scanOverlay').classList.add('show');
+
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+    const video = document.getElementById('scanVideo');
+    video.srcObject = videoStream;
+
+    const fmts = await BarcodeDetector.getSupportedFormats();
+    detector = new BarcodeDetector({ formats: fmts });
+
+    scanLoop();
+  } catch(e) {
+    toast('Não foi possível acessar a câmera.');
+    cancelarScan();
+  }
+}
+
+let lastCode = '', lastTime = 0;
+async function scanLoop() {
+  const video = document.getElementById('scanVideo');
+  if (!videoStream) return;
+  try {
+    const codes = await detector.detect(video);
+    if (codes.length) {
+      const value = codes[0].rawValue;
+      const now = Date.now();
+      if (value !== lastCode || now - lastTime > 1800) {
+        lastCode = value; lastTime = now;
+        onScanSuccess(value);
+      }
+    }
+  } catch(e) {}
+  rafId = requestAnimationFrame(scanLoop);
+}
+
+function doFlash(ok) {
+  const el = document.getElementById('scanFlash');
+  el.className = 'flash ' + (ok ? 'fg' : 'fr');
+  setTimeout(() => el.className = 'flash', 220);
+}
+
+async function onScanSuccess(codigo) {
+  if (scanEtapa === 1) {
+    const sheetName = scanTab === 'ml' ? cfg.ml : cfg.sh;
+    document.getElementById('scanInfoBox').innerHTML = `Procurando ID_ENVIO <b>${esc(codigo)}</b>...`;
+    try {
+      const res = await fetch(`${cfg.url}?action=find&sheet=${encodeURIComponent(sheetName)}&id=${encodeURIComponent(codigo)}`);
+      const d = await res.json();
+      if (!d.item) {
+        doFlash(false);
+        toast('ID_ENVIO não encontrado na lista.');
+        document.getElementById('scanInfoBox').innerHTML = 'Não encontrado. Tente novamente.';
+        return;
+      }
+      doFlash(true);
+      linhaEncontrada = d.item;
+      scanEtapa = 2;
+      document.getElementById('scanTitulo').textContent = 'Escaneie o Pedido';
+      document.getElementById('scanStep').textContent = 'Passo 2 de 2';
+      document.getElementById('scanInfoBox').innerHTML = `ID_ENVIO encontrado: <b>${esc(campo(d.item,'ID_ENVIO'))}</b> (${esc(campo(d.item,'LOJA') || '-')})<br>Agora escaneie o código do Pedido.`;
+    } catch(e) {
+      toast('Erro ao consultar a planilha.');
+    }
+  } else if (scanEtapa === 2) {
+    doFlash(true);
+    pedidoEscaneado = codigo;
+    document.getElementById('scanInfoBox').innerHTML = `ID_ENVIO: <b>${esc(campo(linhaEncontrada,'ID_ENVIO'))}</b><br>Pedido lido: <b>${esc(codigo)}</b><br>Confirme para salvar.`;
+    document.getElementById('btnSalvarScan').style.display = 'block';
+  }
+}
+
+async function salvarScan() {
+  if (!linhaEncontrada || !pedidoEscaneado) return;
+  const sheetName = scanTab === 'ml' ? cfg.ml : cfg.sh;
+  try {
+    toast('Salvando baixa...');
+    await fetch(cfg.url, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+      body: JSON.stringify({ action: 'saveScan', sheet: sheetName, row: linhaEncontrada._row, pedido: pedidoEscaneado }) 
+    });
+    toast('Salvo com sucesso!');
+    encerrarScanner();
+    setTimeout(() => fetchList(scanTab), 1000);
+  } catch(e) {
+    toast('Erro ao salvar.');
+  }
+}
+
+function cancelarScan() { encerrarScanner(); }
+
+function encerrarScanner() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  if (videoStream) { videoStream.getTracks().forEach(tr => tr.stop()); videoStream = null; }
+  document.getElementById('scanOverlay').classList.remove('show');
+}
+
+// ════════════════════════════════════════
+// UTIL
+// ════════════════════════════════════════
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function hl(str, term) {
+  if (!term || !str) return esc(str || '');
+  return esc(str).replace(new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'), '<span class="hi">$1</span>');
+}
+</script>
+</body>
+</html>
