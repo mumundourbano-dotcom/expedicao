@@ -63,7 +63,7 @@ header .icobtn {
 }
 header .icobtn:active { filter: brightness(1.3); }
 
-/* ── ABAS (topo) ── */
+/* ── ABAS ── */
 nav.tabs {
   display: flex;
   background: #fff;
@@ -91,7 +91,7 @@ nav.tabs button[data-tab="ml"].active { color: var(--ml-cor-escura); border-bott
 nav.tabs button[data-tab="sh"].active { color: var(--sh-cor-escura); border-bottom-color: var(--sh-cor); }
 
 /* ── PANELS ── */
-.panel { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; }
+.panel { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; position: relative;}
 .panel.active { display: flex; }
 
 /* ── DASHBOARD ── */
@@ -194,8 +194,8 @@ nav.tabs button[data-tab="sh"].active { color: var(--sh-cor-escura); border-bott
   padding: 10px 12px 16px;
   background: linear-gradient(to top, var(--cinza-bg) 70%, transparent);
   flex-shrink: 0;
+  z-index: 5;
 }
-.panel { position: relative; }
 .fab-bar button {
   flex: 1;
   padding: 14px;
@@ -234,17 +234,6 @@ nav.tabs button[data-tab="sh"].active { color: var(--sh-cor-escura); border-bott
 }
 .setup-box h2 { font-size: 17px; font-weight: 800; color: var(--verde); margin-bottom: 4px; }
 .setup-box p { font-size: 12px; color: #6b7785; margin-bottom: 14px; line-height: 1.8; }
-.steps {
-  background: var(--cinza-bg);
-  border: 1px solid var(--cinza-borda);
-  border-radius: 8px;
-  padding: 11px 13px;
-  margin-bottom: 14px;
-  font-size: 11px;
-  color: #51606e;
-  line-height: 2;
-}
-.steps strong { color: var(--azul); }
 label {
   display: block;
   font-size: 10px;
@@ -280,46 +269,6 @@ label {
   font-weight: 800;
   cursor: pointer;
   margin-bottom: 8px;
-}
-.togbtn {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--azul);
-  border-radius: 9px;
-  background: transparent;
-  color: var(--azul);
-  font-family: 'Montserrat', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.codearea { display: none; margin-top: 10px; }
-.codearea textarea {
-  width: 100%;
-  background: #f4f6f8;
-  border: 1px solid var(--cinza-borda);
-  border-radius: 7px;
-  padding: 10px;
-  color: #1c6e3b;
-  font-family: monospace;
-  font-size: 9.5px;
-  line-height: 1.6;
-  height: 220px;
-  resize: none;
-  outline: none;
-}
-.copybtn {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid var(--cinza-borda);
-  border-radius: 7px;
-  background: transparent;
-  color: #6b7785;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 5px;
 }
 
 /* ── MODAL ITEM AVULSO ── */
@@ -412,70 +361,59 @@ label {
   opacity: 0;
   transition: opacity .25s;
   white-space: nowrap;
+  pointer-events: none;
 }
 .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 
-<!-- SETUP -->
 <div id="setup-ov" style="display: none;">
   <div class="setup-box">
-    <h2>📦 App de Expedição</h2>
-    <p>Configure a URL do Google Apps Script Web App para ler/gravar na planilha.</p>
-    <div class="steps">
-      <strong>1.</strong> Cole o código do Code.gs na planilha (Extensões → Apps Script)<br>
-      <strong>2.</strong> Implantar → Nova implantação → App da Web<br>
-      &nbsp;&nbsp;&nbsp;• Executar como: <strong>Eu</strong> · Acesso: <strong>Qualquer pessoa</strong><br>
-      <strong>3.</strong> Copie a URL (.../exec) e cole abaixo
-    </div>
-    <label>URL do Web App</label>
-    <input class="setup-in" id="cfg-url" placeholder="https://script.google.com/macros/s/.../exec">
+    <h2>📦 Configuração de Abas</h2>
+    <p>Confirme os nomes exatos das abas presentes na planilha do seu grupo.</p>
+    
     <label>Nome da aba — Mercado Livre</label>
-    <input class="setup-in" id="cfg-ml" placeholder="MERCADO_LIVRE">
+    <input class="setup-in" id="cfg-ml" value="MERCADO LIVRE">
+    
     <label>Nome da aba — Shopee</label>
-    <input class="setup-in" id="cfg-sh" placeholder="SHOPEE">
-    <label>Nome da aba — Info (dashboard)</label>
-    <input class="setup-in" id="cfg-info" placeholder="INFO">
-    <button class="savebtn" onclick="saveConfig()">✓ Salvar e Abrir</button>
-    <button class="togbtn" onclick="toggleScript()">📋 Ver código do Apps Script</button>
-    <div class="codearea" id="code-area">
-      <textarea id="script-code" readonly=""></textarea>
-      <button class="copybtn" onclick="copyScript()">📋 Copiar código</button>
-    </div>
+    <input class="setup-in" id="cfg-sh" value="SHOPEE">
+    
+    <label>Nome da aba — Info (Dashboard)</label>
+    <input class="setup-in" id="cfg-info" value="INFO">
+    
+    <button class="savebtn" onclick="saveConfig()">✓ Salvar e Abrir App</button>
   </div>
 </div>
 
-<!-- HEADER -->
 <header>
-  <span>📦 App de Expedição</span>
+  <span>📦 Romaneio Grupo</span>
   <div class="header-actions">
     <button class="icobtn" onclick="carregarTudo()" title="Atualizar">🔄</button>
     <button class="icobtn" onclick="openConfig()">⚙</button>
   </div>
 </header>
 
-<!-- ABAS (topo) -->
 <nav class="tabs">
   <button class="tab-btn active" data-tab="info" onclick="goTab('info')">INFO</button>
   <button class="tab-btn" data-tab="ml" onclick="goTab('ml')">MERCADO LIVRE</button>
   <button class="tab-btn" data-tab="sh" onclick="goTab('sh')">SHOPEE</button>
 </nav>
 
-<!-- ABA INFO -->
 <div class="panel active" id="tab-info">
   <div class="dash-body">
-    <div class="grid-dash" id="dashGrid"><div class="loading">Erro ao carregar dashboard.<br><small>Failed to fetch</small></div></div>
+    <div class="grid-dash" id="dashGrid">
+      <div class="loading">Carregando indicadores...</div>
+    </div>
   </div>
 </div>
 
-<!-- ABA MERCADO LIVRE -->
 <div class="panel" id="tab-ml">
   <div class="list-body">
     <div class="search-bar">
       <input id="busca-ml" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('ml', this.value)" autocomplete="off">
     </div>
-    <div class="qlist" id="qlist-ml"><div class="empty">Erro ao carregar Mercado Livre.<br><small>Aba: <b>MERCADO LIVRE</b><br>Failed to fetch</small></div></div>
+    <div class="qlist" id="qlist-ml"><div class="empty">Carregando lista...</div></div>
   </div>
   <div class="fab-bar">
     <button class="btn-scan" onclick="abrirScanner('ml')">📷 Scan</button>
@@ -483,13 +421,12 @@ label {
   </div>
 </div>
 
-<!-- ABA SHOPEE -->
 <div class="panel" id="tab-sh">
   <div class="list-body">
     <div class="search-bar">
       <input id="busca-sh" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('sh', this.value)" autocomplete="off">
     </div>
-    <div class="qlist" id="qlist-sh"><div class="empty">Erro ao carregar Shopee.<br><small>Aba: <b>SHOPEE</b><br>Failed to fetch</small></div></div>
+    <div class="qlist" id="qlist-sh"><div class="empty">Carregando lista...</div></div>
   </div>
   <div class="fab-bar">
     <button class="btn-scan" onclick="abrirScanner('sh')">📷 Scan</button>
@@ -497,7 +434,6 @@ label {
   </div>
 </div>
 
-<!-- MODAL ITEM AVULSO -->
 <div class="overlay" id="overlayAvulso">
   <div class="sheet">
     <h3 id="avulsoTitulo">Adicionar item avulso</h3>
@@ -516,123 +452,29 @@ label {
   </div>
 </div>
 
-<!-- SCANNER TELA CHEIA -->
 <div id="scanOverlay">
   <div class="scan-header">
     <span id="scanTitulo">Escaneie o ID_ENVIO</span>
     <span class="step" id="scanStep">Passo 1 de 2</span>
   </div>
   <div class="rbox">
-    <video id="scanVideo" autoplay="" muted="" playsinline=""></video>
+    <video id="scanVideo" autoplay muted playsinline></video>
     <div class="flash" id="scanFlash"></div>
   </div>
   <div class="scan-info-box" id="scanInfoBox">Aponte a câmera para o código de barras do envio.</div>
   <div class="scan-footer">
     <button class="btn-cancelar-scan" onclick="cancelarScan()">Cancelar</button>
-    <button class="btn-salvar" id="btnSalvarScan" style="display:none;" onclick="salvarScan()">Salvar</button>
+    <button class="btn-salvar" id="btnSalvarScan" style="display:none;" onclick="salvarScan()">Salvar Baixa</button>
   </div>
 </div>
 
-<div class="toast" id="toast">Atualizando dados...</div>
+<div class="toast" id="toast">Carregando dados...</div>
 
 <script>
 // ════════════════════════════════════════
-// BACKEND (Apps Script) — copiável na tela de config
+// CONFIG / ESTADO GLOBAL
 // ════════════════════════════════════════
-const SCRIPT_CODE = `function doGet(e) {
-  var p = (e && e.parameter) ? e.parameter : {};
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    if (p.action === 'dashboard') {
-      var rawSheet = p.sheet;
-      if (Array.isArray(rawSheet)) { rawSheet = rawSheet[0]; }
-      var sheetName = rawSheet ? String(rawSheet).trim() : 'INFO';
-      var sheet = ss.getSheetByName(sheetName);
-      if (!sheet) return out({ error: 'Aba ' + sheetName + ' não encontrada' });
-      var values = sheet.getDataRange().getValues();
-      var headers = values[0].map(function (h) { return String(h).trim(); });
-      var vals = values[1] || [];
-      function v(nome) { var i = headers.findIndex(function(h){ return String(h).trim().toUpperCase() === nome.toUpperCase(); }); return i === -1 ? 0 : (vals[i] || 0); }
-      return out({ totalML: v('TOTAL MERCADO'), totalSH: v('TOTAL SHOPEE'), mlDome: v('ML DOME'), mlAmazzo: v('ML AMAZZO'), shDome: v('SH DOME'), shAmazzo: v('SH AMAZZO') });
-    }
-    if (p.action === 'list') {
-      var rawSheetList = p.sheet;
-      if (Array.isArray(rawSheetList)) { rawSheetList = rawSheetList[0]; }
-      var sheetNameList = rawSheetList ? String(rawSheetList).trim() : '';
-      if (!sheetNameList) return out({ rows: [] });
-      var sheet2 = ss.getSheetByName(sheetNameList);
-      if (!sheet2) return out({ rows: [] });
-      var values2 = sheet2.getDataRange().getValues();
-      if (values2.length < 2) return out({ rows: [] });
-      var headers2 = values2[0];
-      var rows = values2.slice(1).map(function (r, i) {
-        var o = {}; headers2.forEach(function (h, idx) { o[h] = r[idx] !== undefined ? r[idx] : ''; }); o._row = i + 2; return o;
-      }).filter(function (o) { return o.ID_ENVIO !== '' && o.ID_ENVIO !== null; });
-      return out({ rows: rows });
-    }
-    if (p.action === 'find') {
-      var rawSheetFind = p.sheet;
-      if (Array.isArray(rawSheetFind)) { rawSheetFind = rawSheetFind[0]; }
-      var sheetNameFind = rawSheetFind ? String(rawSheetFind).trim() : '';
-      var sheet3 = ss.getSheetByName(sheetNameFind);
-      if (!sheet3) return out({ item: null });
-      var values3 = sheet3.getDataRange().getValues();
-      var headers3 = values3[0];
-      var headersUpper3 = headers3.map(function(h){ return String(h).trim().toUpperCase(); });
-      var idCol = headersUpper3.indexOf('ID_ENVIO');
-      for (var i = 1; i < values3.length; i++) {
-        if (String(values3[i][idCol]).trim() === String(p.id).trim()) {
-          var o2 = {}; headers3.forEach(function (h, idx) { o2[h] = values3[i][idx]; }); o2._row = i + 1; return out({ item: o2 });
-        }
-      }
-      return out({ item: null });
-    }
-    return out({ status: 'online' });
-  } catch (err) { return out({ error: err.toString() }); }
-}
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetNamePost = data.sheet ? String(data.sheet).trim() : '';
-    var sheet = ss.getSheetByName(sheetNamePost);
-    if (!sheet) return out({ success: false, error: 'Aba não encontrada: ' + sheetNamePost });
-    if (data.action === 'saveScan') {
-      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-      var headersUpper = headers.map(function(h){ return String(h).trim().toUpperCase(); });
-      var colPedido = headersUpper.indexOf('PEDIDO') + 1;
-      var colData = headersUpper.indexOf('DATA_BAIXA') + 1;
-      if (colPedido === 0 || colData === 0) return out({ success: false, error: 'Colunas Pedido/Data_baixa não encontradas' });
-      var now = new Date();
-      var formatted = Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
-      sheet.getRange(data.row, colPedido).setValue(data.pedido);
-      sheet.getRange(data.row, colData).setValue(formatted);
-      return out({ success: true, data: formatted });
-    }
-    if (data.action === 'addItem') {
-      var headers2 = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-      var item = data.item || {};
-      var now2 = new Date();
-      var formatted2 = Utilities.formatDate(now2, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
-      var row = headers2.map(function (h) { 
-        var headUpper = String(h).trim().toUpperCase();
-        if (headUpper === 'DATA_BAIXA') return formatted2; 
-        return item[headUpper] || item[String(h).trim()] || ''; 
-      });
-      sheet.appendRow(row);
-      return out({ success: true });
-    }
-    return out({ success: false, error: 'Ação desconhecida: ' + data.action });
-  } catch (err) { return out({ success: false, error: err.toString() }); }
-}
-function out(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }`;
-
-document.getElementById('script-code').value = SCRIPT_CODE;
-
-// ════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════
-let cfg = { url:'', ml:'MERCADO LIVRE', sh:'SHOPEE', info:'INFO' };
+let cfg = { ml:'MERCADO LIVRE', sh:'SHOPEE', info:'INFO' };
 let dadosML = [], dadosSH = [];
 let activeTab = 'info';
 
@@ -644,43 +486,36 @@ let scanTab = '';
 let linhaEncontrada = null;
 let pedidoEscaneado = '';
 
-// ════════════════════════════════════════
-// CONFIG / PERSISTÊNCIA
-// ════════════════════════════════════════
+window.onload = () => {
+  const saved = localStorage.getItem('expedicao_cfg_v2');
+  if (saved) { 
+    cfg = JSON.parse(saved); 
+  } else {
+    document.getElementById('setup-ov').style.display = 'flex';
+  }
+  carregarTudo();
+};
+
 function saveConfig() {
-  const url = document.getElementById('cfg-url').value.trim();
-  if (!url) { alert('Cole a URL do Web App.'); return; }
   cfg = {
-    url,
     ml: document.getElementById('cfg-ml').value.trim() || 'MERCADO LIVRE',
     sh: document.getElementById('cfg-sh').value.trim() || 'SHOPEE',
     info: document.getElementById('cfg-info').value.trim() || 'INFO'
   };
-  localStorage.setItem('expedicao_cfg', JSON.stringify(cfg));
+  localStorage.setItem('expedicao_cfg_v2', JSON.stringify(cfg));
   document.getElementById('setup-ov').style.display = 'none';
   carregarTudo();
 }
+
 function openConfig() {
-  document.getElementById('cfg-url').value = cfg.url || '';
-  document.getElementById('cfg-ml').value = cfg.ml || '';
-  document.getElementById('cfg-sh').value = cfg.sh || '';
-  document.getElementById('cfg-info').value = cfg.info || '';
+  document.getElementById('cfg-ml').value = cfg.ml;
+  document.getElementById('cfg-sh').value = cfg.sh;
+  document.getElementById('cfg-info').value = cfg.info;
   document.getElementById('setup-ov').style.display = 'flex';
 }
-function toggleScript() { const el = document.getElementById('code-area'); el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
-function copyScript() { navigator.clipboard.writeText(SCRIPT_CODE).then(() => toast('Código copiado!')); }
-
-window.onload = () => {
-  const saved = localStorage.getItem('expedicao_cfg');
-  if (saved) { cfg = { ...cfg, ...JSON.parse(saved) }; }
-  if (cfg.url) {
-    document.getElementById('setup-ov').style.display = 'none';
-    carregarTudo();
-  }
-};
 
 // ════════════════════════════════════════
-// NAV
+// NAVEGAÇÃO DE ABAS
 // ════════════════════════════════════════
 function goTab(t) {
   activeTab = t;
@@ -691,48 +526,41 @@ function goTab(t) {
 }
 
 // ════════════════════════════════════════
-// CARREGAMENTO DE DADOS
+// SINCRONIZAÇÃO COM O GOOGLE SHEETS
 // ════════════════════════════════════════
-async function carregarTudo() {
-  if (!cfg.url) return;
-  toast('Atualizando dados...');
-  await fetchDashboard();
-  await fetchList('ml');
-  await fetchList('sh');
-}
+function carregarTudo() {
+  toast('Atualizando dados da Planilha...');
+  
+  // Atualiza Dashboard
+  google.script.run
+    .withSuccessHandler(renderDashboard)
+    .withFailureHandler(err => {
+      document.getElementById('dashGrid').innerHTML = `<div class="loading">Erro no painel: ${err.message}</div>`;
+    })
+    .getDashboardData(cfg);
 
-async function fetchDashboard() {
-  try {
-    const res = await fetch(`${cfg.url}?action=dashboard&sheet=${encodeURIComponent(cfg.info)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const d = await res.json();
-    renderDashboard(d);
-  } catch(e) {
-    console.error('Dashboard error:', e);
-    document.getElementById('dashGrid').innerHTML = `<div class="loading">Erro ao carregar dashboard.<br><small>${e.message}</small></div>`;
-  }
-}
+  // Atualiza Mercado Livre
+  google.script.run
+    .withSuccessHandler(rows => {
+      dadosML = rows || [];
+      renderLista('ml', dadosML);
+    })
+    .getListData(cfg.ml);
 
-async function fetchList(tab) {
-  const sheetName = tab === 'ml' ? cfg.ml : cfg.sh;
-  const label = tab === 'ml' ? 'Mercado Livre' : 'Shopee';
-  const el = document.getElementById('qlist-' + tab);
-  el.innerHTML = '<div class="empty">Carregando...</div>';
-  try {
-    const res = await fetch(`${cfg.url}?action=list&sheet=${encodeURIComponent(sheetName)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const d = await res.json();
-    if (d.error) throw new Error(d.error);
-    if (tab === 'ml') dadosML = d.rows || []; else dadosSH = d.rows || [];
-    renderLista(tab, tab === 'ml' ? dadosML : dadosSH);
-  } catch(e) {
-    console.error(`Erro aba ${label}:`, e);
-    el.innerHTML = `<div class="empty">Erro ao carregar ${label}.<br><small>Aba: <b>${sheetName}</b><br>${e.message}</small></div>`;
-  }
+  // Atualiza Shopee
+  google.script.run
+    .withSuccessHandler(rows => {
+      dadosSH = rows || [];
+      renderLista('sh', dadosSH);
+    })
+    .getListData(cfg.sh);
 }
 
 function renderDashboard(d) {
-  if (d.error) { document.getElementById('dashGrid').innerHTML = `<div class="loading">${d.error}</div>`; return; }
+  if (!d || d.error) { 
+    document.getElementById('dashGrid').innerHTML = `<div class="loading">Crie a aba INFO com as fórmulas ou configure corretamente.</div>`; 
+    return; 
+  }
   document.getElementById('dashGrid').innerHTML =
     `<div class="card full"><div class="valor">${d.totalML || 0}</div><div class="rotulo">Total Mercado Livre</div></div>
      <div class="card full"><div class="valor">${d.totalSH || 0}</div><div class="rotulo">Total Shopee</div></div>
@@ -744,7 +572,10 @@ function renderDashboard(d) {
 
 function renderLista(tab, lista) {
   const el = document.getElementById('qlist-' + tab);
-  if (!lista.length) { el.innerHTML = '<div class="empty">Nenhum item pendente ou encontrado.</div>'; return; }
+  if (!lista || !lista.length) { 
+    el.innerHTML = '<div class="empty">Nenhum registro encontrado nesta aba.</div>'; 
+    return; 
+  }
   el.innerHTML = lista.map(item => itemHTML(item, '')).join('');
 }
 
@@ -763,6 +594,7 @@ function itemHTML(item, term) {
   const loja      = campo(item, 'LOJA');
   const completo  = pedido && dataBaixa;
   const badge = completo ? '<span class="badge ok">Baixado</span>' : '<span class="badge pend">Pendente</span>';
+  
   return `<div class="qi">
     <div class="qi-top"><span class="qi-id">${hl(idEnvio, term)}</span>${badge}</div>
     <div class="qi-loja">${hl(loja || '-', term)}</div>
@@ -779,13 +611,14 @@ function filtrar(tab, termo) {
   const t = termo.trim().toLowerCase();
   const el = document.getElementById('qlist-' + tab);
   if (!t) { renderLista(tab, base); return; }
+  
   const filtrado = base.filter(item => Object.keys(item).some(k => String(item[k] || '').toLowerCase().includes(t)));
   if (!filtrado.length) { el.innerHTML = `<div class="empty">Sem resultados para "${esc(termo)}"</div>`; return; }
   el.innerHTML = filtrado.map(item => itemHTML(item, t)).join('');
 }
 
 // ════════════════════════════════════════
-// ITEM AVULSO
+// EVENTOS: ITEM AVULSO
 // ════════════════════════════════════════
 let avulsoTab = '';
 function abrirModalAvulso(tab) {
@@ -797,38 +630,37 @@ function fecharModalAvulso() {
   document.getElementById('overlayAvulso').classList.remove('show');
   ['av_idEnvio','av_idVenda','av_loja','av_pedido'].forEach(id => document.getElementById(id).value = '');
 }
-async function salvarAvulso() {
+function salvarAvulso() {
   const item = {
     ID_ENVIO: document.getElementById('av_idEnvio').value.trim(),
     ID_VENDA: document.getElementById('av_idVenda').value.trim(),
     LOJA: document.getElementById('av_loja').value.trim(),
     PEDIDO: document.getElementById('av_pedido').value.trim()
   };
-  if (!item.ID_ENVIO) { toast('Informe o ID_ENVIO'); return; }
+  if (!item.ID_ENVIO) { toast('Informe obrigatoriamente o ID_ENVIO'); return; }
+  
   const sheetName = avulsoTab === 'ml' ? cfg.ml : cfg.sh;
-  try {
-    toast('Salvando...');
-    // CORREÇÃO CORS: Alterado o Content-Type para omitir o charset que quebrava o preflight OPTIONS
-    await fetch(cfg.url, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'text/plain' }, 
-      body: JSON.stringify({ action: 'addItem', sheet: sheetName, item: item }) 
-    });
-    toast('Item avulso adicionado!');
-    fecharModalAvulso();
-    setTimeout(() => fetchList(avulsoTab), 1000);
-  } catch(e) { 
-    console.error(e);
-    toast('Erro ao salvar item avulso'); 
-  }
+  toast('Adicionando linha...');
+  
+  google.script.run
+    .withSuccessHandler(res => {
+      if (res.success) {
+        toast('Item avulso inserido!');
+        fecharModalAvulso();
+        carregarTudo();
+      } else {
+        toast('Erro: ' + res.error);
+      }
+    })
+    .addItemAction(sheetName, item);
 }
 
 // ════════════════════════════════════════
-// SCANNER — câmera nativa + BarcodeDetector
+// SCANNER INTEGRADO (BarcodeDetector Nativo)
 // ════════════════════════════════════════
 async function abrirScanner(tab) {
   if (!('BarcodeDetector' in window)) {
-    toast('Seu navegador não suporta leitura nativa de código. Use Chrome no Android.');
+    toast('Navegador incompatível com leitura nativa. Use o Chrome ou Android atualizado.');
     return;
   }
   scanTab = tab;
@@ -837,21 +669,22 @@ async function abrirScanner(tab) {
   pedidoEscaneado = '';
   document.getElementById('scanTitulo').textContent = 'Escaneie o ID_ENVIO';
   document.getElementById('scanStep').textContent = 'Passo 1 de 2';
-  document.getElementById('scanInfoBox').innerHTML = 'Aponte a câmera para o código de barras do envio.';
+  document.getElementById('scanInfoBox').innerHTML = 'Aponte para o código de barras da **Etiqueta de Envio**.';
   document.getElementById('btnSalvarScan').style.display = 'none';
   document.getElementById('scanOverlay').classList.add('show');
 
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+    videoStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } 
+    });
     const video = document.getElementById('scanVideo');
     video.srcObject = videoStream;
 
     const fmts = await BarcodeDetector.getSupportedFormats();
     detector = new BarcodeDetector({ formats: fmts });
-
     scanLoop();
   } catch(e) {
-    toast('Não foi possível acessar a câmera.');
+    toast('Sem acesso à câmera traseira.');
     cancelarScan();
   }
 }
@@ -880,53 +713,53 @@ function doFlash(ok) {
   setTimeout(() => el.className = 'flash', 220);
 }
 
-async function onScanSuccess(codigo) {
+function onScanSuccess(codigo) {
+  const sheetName = scanTab === 'ml' ? cfg.ml : cfg.sh;
+  
   if (scanEtapa === 1) {
-    const sheetName = scanTab === 'ml' ? cfg.ml : cfg.sh;
-    document.getElementById('scanInfoBox').innerHTML = `Procurando ID_ENVIO <b>${esc(codigo)}</b>...`;
-    try {
-      const res = await fetch(`${cfg.url}?action=find&sheet=${encodeURIComponent(sheetName)}&id=${encodeURIComponent(codigo)}`);
-      const d = await res.json();
-      if (!d.item) {
-        doFlash(false);
-        toast('ID_ENVIO não encontrado na lista.');
-        document.getElementById('scanInfoBox').innerHTML = 'Não encontrado. Tente novamente.';
-        return;
-      }
-      doFlash(true);
-      linhaEncontrada = d.item;
-      scanEtapa = 2;
-      document.getElementById('scanTitulo').textContent = 'Escaneie o Pedido';
-      document.getElementById('scanStep').textContent = 'Passo 2 de 2';
-      document.getElementById('scanInfoBox').innerHTML = `ID_ENVIO encontrado: <b>${esc(campo(d.item,'ID_ENVIO'))}</b> (${esc(campo(d.item,'LOJA') || '-')})<br>Agora escaneie o código do Pedido.`;
-    } catch(e) {
-      toast('Erro ao consultar a planilha.');
-    }
+    document.getElementById('scanInfoBox').innerHTML = `Buscando código <b>${esc(codigo)}</b> na planilha...`;
+    
+    google.script.run
+      .withSuccessHandler(item => {
+        if (!item) {
+          doFlash(false);
+          toast('ID_ENVIO não localizado nesta aba.');
+          document.getElementById('scanInfoBox').innerHTML = 'Não encontrado. Tente focar outro código.';
+          return;
+        }
+        doFlash(true);
+        linhaEncontrada = item;
+        scanEtapa = 2;
+        document.getElementById('scanTitulo').textContent = 'Escaneie o Pedido';
+        document.getElementById('scanStep').textContent = 'Passo 2 de 2';
+        document.getElementById('scanInfoBox').innerHTML = `Envio Localizado: <b>${esc(campo(item,'ID_ENVIO'))}</b> (${esc(campo(item,'LOJA'))})<br>Agora, aponte para o código do **Pedido/Nota**.`;
+      })
+      .findItemById(sheetName, codigo);
+      
   } else if (scanEtapa === 2) {
     doFlash(true);
     pedidoEscaneado = codigo;
-    document.getElementById('scanInfoBox').innerHTML = `ID_ENVIO: <b>${esc(campo(linhaEncontrada,'ID_ENVIO'))}</b><br>Pedido lido: <b>${esc(codigo)}</b><br>Confirme para salvar.`;
+    document.getElementById('scanInfoBox').innerHTML = `Envio: <b>${esc(campo(linhaEncontrada,'ID_ENVIO'))}</b><br>Pedido Lido: <b>${esc(codigo)}</b><br><br>Pressione o botão azul abaixo para confirmar e dar baixa.`;
     document.getElementById('btnSalvarScan').style.display = 'block';
   }
 }
 
-async function salvarScan() {
+function salvarScan() {
   if (!linhaEncontrada || !pedidoEscaneado) return;
   const sheetName = scanTab === 'ml' ? cfg.ml : cfg.sh;
-  try {
-    toast('Salvando baixa...');
-    // CORREÇÃO CORS: Alterado o Content-Type para omitir o charset que quebrava o preflight OPTIONS
-    await fetch(cfg.url, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'text/plain' }, 
-      body: JSON.stringify({ action: 'saveScan', sheet: sheetName, row: linhaEncontrada._row, pedido: pedidoEscaneado }) 
-    });
-    toast('Salvo com sucesso!');
-    encerrarScanner();
-    setTimeout(() => fetchList(scanTab), 1000);
-  } catch(e) {
-    toast('Erro ao salvar.');
-  }
+  toast('Gravando informações...');
+  
+  google.script.run
+    .withSuccessHandler(res => {
+      if (res.success) {
+        toast('Baixa processada com sucesso!');
+        encerrarScanner();
+        carregarTudo();
+      } else {
+        toast('Erro ao processar: ' + res.error);
+      }
+    })
+    .saveScanAction(sheetName, linhaEncontrada._row, pedidoEscaneado);
 }
 
 function cancelarScan() { encerrarScanner(); }
@@ -938,7 +771,7 @@ function encerrarScanner() {
 }
 
 // ════════════════════════════════════════
-// UTIL
+// FERRAMENTAS AUXILIARES
 // ════════════════════════════════════════
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -952,6 +785,5 @@ function hl(str, term) {
   return esc(str).replace(new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'), '<span class="hi">$1</span>');
 }
 </script>
-
 </body>
 </html>
