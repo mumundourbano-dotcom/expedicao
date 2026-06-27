@@ -3,394 +3,181 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>App de Expedição</title>
+<title>Romaneio Grupo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
 :root {
   --azul: #1565c0;
-  --azul-escuro: #0d3c61;
+  --azul-esc: #0d3c61;
   --verde: #2e7d32;
   --laranja: #e65100;
   --cinza-bg: #f4f6f8;
   --cinza-borda: #dfe3e8;
-
   --ml-cor: #d4a017;
-  --ml-cor-escura: #8a6a0c;
-  --ml-texto: #1c1502;
-
+  --ml-esc: #8a6a0c;
   --sh-cor: #ee4d2d;
-  --sh-cor-escura: #b8351a;
-  --sh-texto: #ffffff;
+  --sh-esc: #b8351a;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Montserrat',sans-serif;background:var(--cinza-bg);color:#1c2a36}
+body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
 
-  --info-cor: #1565c0;
-}
+/* HEADER */
+header{background:var(--azul-esc);color:#fff;padding:13px 16px;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
+.header-right{display:flex;align-items:center;gap:8px}
+.icobtn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:7px;padding:6px 10px;font-size:14px;cursor:pointer;color:#fff;font-family:'Montserrat',sans-serif}
+#authBtn{background:#fff;color:var(--azul-esc);font-weight:700;font-size:12px;padding:6px 12px;border:none;border-radius:7px;cursor:pointer;font-family:'Montserrat',sans-serif}
+#authStatus{font-size:11px;color:rgba(255,255,255,0.7)}
 
-*,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* TABS */
+nav.tabs{display:flex;background:#fff;border-bottom:1px solid var(--cinza-borda);flex-shrink:0;z-index:9}
+nav.tabs button{flex:1;padding:12px 4px;border:none;background:none;font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:#6b7785;border-bottom:3px solid transparent;cursor:pointer;text-transform:uppercase}
+nav.tabs button.active{color:var(--azul);border-bottom-color:var(--azul)}
+nav.tabs button[data-tab="ml"].active{color:var(--ml-esc);border-bottom-color:var(--ml-cor)}
+nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:var(--sh-cor)}
 
-html, body {
-  height: 100%;
-  font-family: 'Montserrat', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background: var(--cinza-bg);
-  color: #1c2a36;
-}
+/* PANELS */
+.panel{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;position:relative}
+.panel.active{display:flex}
 
-body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+/* DASHBOARD */
+.dash-body{flex:1;overflow-y:auto;padding:12px;padding-bottom:20px}
+.grid-dash{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);text-align:center}
+.card .valor{font-size:28px;font-weight:700;color:var(--azul-esc)}
+.card .rotulo{font-size:11px;color:#6b7785;margin-top:4px;text-transform:uppercase;font-weight:600}
+.card.full{grid-column:1/-1}
+.card.full .valor{color:var(--verde)}
+.card.ml-card .valor{color:var(--ml-esc)}
+.card.sh-card .valor{color:var(--sh-esc)}
+.card-section-title{grid-column:1/-1;font-size:12px;font-weight:700;color:#6b7785;text-transform:uppercase;margin-top:6px;padding-left:2px}
 
-/* ── HEADER ── */
-header {
-  background: var(--azul-escuro);
-  color: #fff;
-  padding: 14px 16px;
-  font-size: 18px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  z-index: 10;
-}
-header .header-actions { display: flex; gap: 8px; }
-header .icobtn {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 7px;
-  padding: 6px 10px;
-  font-size: 14px;
-  cursor: pointer;
-  color: #fff;
-}
-header .icobtn:active { filter: brightness(1.3); }
+/* LIST */
+.list-body{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px 10px 6px;gap:8px}
+.search-bar{display:flex;gap:8px;flex-shrink:0}
+.search-bar input{flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--cinza-borda);font-family:'Montserrat',sans-serif;font-size:14px;outline:none}
+.qlist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:90px}
+.empty{padding:30px 16px;text-align:center;color:#6b7785;font-size:12px}
+.loading{text-align:center;padding:30px;color:#6b7785;font-size:13px}
 
-/* ── ABAS ── */
-nav.tabs {
-  display: flex;
-  background: #fff;
-  border-bottom: 1px solid var(--cinza-borda);
-  flex-shrink: 0;
-  z-index: 9;
-}
-nav.tabs button {
-  flex: 1;
-  padding: 12px 4px;
-  border: none;
-  background: none;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #6b7785;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-  letter-spacing: 0.2px;
-  text-transform: uppercase;
-  transition: color .2s, border-color .2s;
-}
-nav.tabs button.active { color: var(--azul); border-bottom-color: var(--azul); }
-nav.tabs button[data-tab="ml"].active { color: var(--ml-cor-escura); border-bottom-color: var(--ml-cor); }
-nav.tabs button[data-tab="sh"].active { color: var(--sh-cor-escura); border-bottom-color: var(--sh-cor); }
+/* ITEM CARD */
+.qi{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:flex;flex-direction:column;gap:6px}
+.qi-top{display:flex;justify-content:space-between;align-items:center}
+.qi-id{font-size:13px;font-weight:700}
+.qi-loja{font-size:11px;color:#6b7785;font-weight:600;text-transform:uppercase}
+.qi-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;color:#51606e}
+.qi-grid b{color:#1c2a36;font-weight:600}
+.badge{display:inline-block;font-size:10px;padding:3px 8px;border-radius:6px;font-weight:700}
+.badge.ok{background:#e6f4ea;color:var(--verde)}
+.badge.pend{background:#fdecea;color:#c62828}
 
-/* ── PANELS ── */
-.panel { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; position: relative;}
-.panel.active { display: flex; }
+/* FAB */
+.fab-bar{position:absolute;bottom:0;left:0;right:0;display:flex;gap:10px;padding:10px 12px 16px;background:linear-gradient(to top,var(--cinza-bg) 70%,transparent);z-index:5}
+.fab-bar button{flex:1;padding:14px;border:none;border-radius:30px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,0.18)}
+#tab-ml .btn-scan,#tab-ml .btn-add{background:var(--ml-cor);color:#1c1502}
+#tab-sh .btn-scan,#tab-sh .btn-add{background:var(--sh-cor);color:#fff}
 
-/* ── DASHBOARD ── */
-.dash-body { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 90px; }
-.grid-dash {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  text-align: center;
-}
-.card .valor { font-size: 28px; font-weight: 700; color: var(--azul-escuro); }
-.card .rotulo { font-size: 12px; color: #6b7785; margin-top: 4px; text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
-.card.full { grid-column: 1 / -1; }
-.card.full .valor { color: var(--verde); }
-.card.ml-card .valor { color: var(--ml-cor-escura); }
-.card.sh-card .valor { color: var(--sh-cor-escura); }
+/* SCAN OVERLAY */
+#scanOverlay{position:fixed;inset:0;background:#000;z-index:120;display:none;flex-direction:column}
+#scanOverlay.show{display:flex}
+.scan-header{color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;background:var(--azul-esc);flex-shrink:0}
+.scan-header .step{font-size:11px;padding:3px 9px;border-radius:8px;color:#90caf9;background:rgba(0,0,0,0.2)}
+.rbox{position:relative;flex:1;width:100%;background:#000;overflow:hidden}
+#reader{width:100%;height:100%}
+.scan-info-box{background:#1a1a1a;color:#fff;padding:12px 16px;font-size:12.5px;border-top:1px solid #333;text-align:center;flex-shrink:0}
+.scan-info-box b{color:#4caf50}
+.scan-footer{padding:12px;display:flex;gap:10px;background:#111;flex-shrink:0}
+.scan-footer button{flex:1;padding:14px;border:none;border-radius:10px;font-family:'Montserrat',sans-serif;font-weight:800;color:#fff;cursor:pointer}
+#btnSalvarScan{background:var(--verde)}
+#btnCancelarScan{background:#37474f}
 
-/* ── BUSCA / LISTA ── */
-.list-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 10px 10px 6px;
-  gap: 8px;
-}
-.search-bar { display: flex; gap: 8px; flex-shrink: 0; }
-.search-bar input {
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--cinza-borda);
-  font-family: 'Montserrat', sans-serif;
-  font-size: 14px;
-  background: #fff;
-  color: #1c2a36;
-  outline: none;
-  transition: border-color .2s;
-}
-.search-bar input:focus { border-color: var(--azul); }
-#tab-ml .search-bar input:focus { border-color: var(--ml-cor); }
-#tab-sh .search-bar input:focus { border-color: var(--sh-cor); }
+/* AVULSO OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:flex-end;justify-content:center;z-index:60}
+.overlay.show{display:flex}
+.sheet{background:#fff;width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:18px;max-height:88vh;overflow-y:auto}
+.sheet h3{font-size:16px;font-weight:800;margin-bottom:14px}
+.setup-in{width:100%;border:1px solid var(--cinza-borda);border-radius:8px;padding:10px 12px;font-family:'Montserrat',sans-serif;font-size:13px;outline:none}
+.field-row{display:flex;gap:6px;align-items:center;margin-bottom:11px}
+.field-row .setup-in{margin-bottom:0;flex:1}
+.scan-field-btn{padding:10px 13px;border:1px solid var(--cinza-borda);border-radius:8px;background:#f0f4ff;font-size:18px;cursor:pointer;flex-shrink:0}
+.sheet-actions{display:flex;gap:10px;margin-top:16px}
+.sheet-actions button{flex:1;padding:13px;border-radius:10px;border:none;font-family:'Montserrat',sans-serif;font-weight:800;cursor:pointer}
+.btn-salvar{background:var(--verde);color:#fff}
+.btn-cancelar{background:#eceff1;color:#37474f}
 
-/* ── LISTA DE CARDS ── */
-.qlist {
-  flex: 1;
-  overflow-y: auto;
-  background: transparent;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 80px;
-}
-.empty { padding: 30px 16px; text-align: center; color: #6b7785; font-size: 12px; line-height: 1.8; }
-.loading { text-align: center; padding: 30px; color: #6b7785; font-size: 13px; }
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#263238;color:#fff;padding:10px 18px;border-radius:30px;font-size:12.5px;font-weight:600;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
 
-/* item de lista */
-.qi {
-  background: #fff;
-  border-radius: 10px;
-  padding: 12px 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.qi-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.qi-id { font-size: 13px; font-weight: 700; color: #1c2a36; }
-.qi-loja { font-size: 11px; color: #6b7785; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
-.qi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: #51606e; }
-.qi-grid b { color: #1c2a36; font-weight: 600; }
-
-.badge {
-  display: inline-block;
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.badge.ok { background: #e6f4ea; color: var(--verde); }
-.badge.pend { background: #fdecea; color: #c62828; }
-.hi { background: rgba(21,101,192,.18); border-radius: 2px; padding: 0 1px; }
-
-/* ── FAB BAR ── */
-.fab-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  gap: 10px;
-  padding: 10px 12px 16px;
-  background: linear-gradient(to top, var(--cinza-bg) 70%, transparent);
-  flex-shrink: 0;
-  z-index: 5;
-}
-.fab-bar button {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: 30px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.18);
-  transition: filter .15s;
-}
-.fab-bar button:active { filter: brightness(.9); }
-#tab-ml .btn-scan, #tab-ml .btn-add { background: var(--ml-cor); color: var(--ml-texto); }
-#tab-sh .btn-scan, #tab-sh .btn-add { background: var(--sh-cor); color: var(--sh-texto); }
-
-/* ── SETUP OVERLAY ── */
-#setup-ov {
-  position: fixed;
-  inset: 0;
-  background: rgba(20,30,50,0.96);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  overflow-y: auto;
-}
-.setup-box {
-  background: #fff;
-  border-radius: 16px;
-  padding: 22px;
-  width: 100%;
-  max-width: 440px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-}
-.setup-box h2 { font-size: 17px; font-weight: 800; color: var(--verde); margin-bottom: 4px; }
-.setup-box p { font-size: 12px; color: #6b7785; margin-bottom: 14px; line-height: 1.8; }
-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .6px;
-  text-transform: uppercase;
-  color: #6b7785;
-  margin-bottom: 4px;
-}
-.setup-in {
-  width: 100%;
-  background: #fff;
-  border: 1px solid var(--cinza-borda);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: #1c2a36;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 13px;
-  outline: none;
-  margin-bottom: 11px;
-  transition: border-color .2s;
-}
-.setup-in:focus { border-color: var(--azul); }
-.savebtn {
-  width: 100%;
-  padding: 13px;
-  border: none;
-  border-radius: 9px;
-  background: var(--verde);
-  color: #fff;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  margin-bottom: 8px;
-}
-
-/* ── MODAL ITEM AVULSO ── */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 60; }
-.overlay.show { display: flex; }
-.sheet {
-  background: #fff;
-  width: 100%;
-  max-width: 480px;
-  border-radius: 16px 16px 0 0;
-  padding: 18px;
-  max-height: 88vh;
-  overflow-y: auto;
-}
-.sheet h3 { margin-bottom: 4px; font-size: 15px; font-weight: 800; color: #1c2a36; }
-.sheet label { font-size: 11px; color: #51606e; font-weight: 600; display: block; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .4px; }
-.sheet .setup-in { margin-bottom: 0; }
-.sheet-actions { display: flex; gap: 10px; margin-top: 16px; }
-.sheet-actions button {
-  flex: 1;
-  padding: 13px;
-  border-radius: 10px;
-  border: none;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 800;
-  font-size: 13px;
-  cursor: pointer;
-}
-.btn-salvar { background: var(--verde); color: #fff; }
-.btn-cancelar { background: #eceff1; color: #37474f; }
-
-/* ── SCANNER TELA CHEIA ── */
-#scanOverlay { position: fixed; inset: 0; background: #000; z-index: 120; display: none; flex-direction: column; }
-#scanOverlay.show { display: flex; }
-.scan-header {
-  color: #fff;
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 700;
-  background: var(--azul-escuro);
-  flex-shrink: 0;
-}
-.scan-header span.step { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 8px; color: #90caf9; }
-.rbox { position: relative; flex: 1; width: 100%; background: #000; overflow: hidden; }
-.rbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .07s; z-index: 5; }
-.flash.fg { background: rgba(46,125,50,.35); opacity: 1; }
-.flash.fr { background: rgba(198,40,40,.35); opacity: 1; }
-.scan-info-box {
-  background: #1a1a1a;
-  color: #fff;
-  padding: 12px 16px;
-  font-size: 12.5px;
-  border-top: 1px solid #333;
-  line-height: 1.6;
-  flex-shrink: 0;
-}
-.scan-info-box b { color: #4caf50; }
-.scan-footer { padding: 12px; display: flex; gap: 10px; background: #111; flex-shrink: 0; }
-.scan-footer button {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: 10px;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 800;
-  font-size: 13px;
-  cursor: pointer;
-  color: #fff;
-}
-.btn-cancelar-scan { background: #37474f; }
-
-/* ── TOAST ── */
-.toast {
-  position: fixed;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #263238;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 30px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 12.5px;
-  font-weight: 600;
-  z-index: 200;
-  opacity: 0;
-  transition: opacity .25s;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.toast.show { opacity: 1; }
+/* AUTH WALL */
+#authWall{position:fixed;inset:0;background:var(--azul-esc);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;padding:24px}
+#authWall h2{color:#fff;font-size:22px;font-weight:800;text-align:center}
+#authWall p{color:rgba(255,255,255,0.7);font-size:13px;text-align:center;max-width:300px}
+#authWall .auth-box{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;align-items:center}
+#btnLogin{background:var(--azul);color:#fff;border:none;border-radius:10px;padding:14px 28px;font-family:'Montserrat',sans-serif;font-weight:800;font-size:15px;cursor:pointer;width:100%}
 </style>
 </head>
 <body>
 
-<div id="setup-ov" style="display: none;">
-  <div class="setup-box">
-    <h2>📦 Configuração de Abas</h2>
-    <p>Confirme os nomes exatos das abas presentes na planilha do seu grupo.</p>
-    
-    <label>Nome da aba — Mercado Livre</label>
-    <input class="setup-in" id="cfg-ml" value="MERCADO LIVRE">
-    
-    <label>Nome da aba — Shopee</label>
-    <input class="setup-in" id="cfg-sh" value="SHOPEE">
-    
-    <label>Nome da aba — Info (Dashboard)</label>
-    <input class="setup-in" id="cfg-info" value="INFO">
-    
-    <button class="savebtn" onclick="saveConfig()">✓ Salvar e Abrir App</button>
+<!-- AUTH WALL -->
+<div id="authWall">
+  <div class="auth-box">
+    <div style="font-size:48px">📦</div>
+    <h2 style="color:var(--azul-esc);margin:0">Romaneio Grupo</h2>
+    <p style="color:#6b7785;text-align:center;font-size:13px">Faça login com sua conta Google para acessar e registrar expedições.</p>
+    <button id="btnLogin" onclick="iniciarLogin()">🔐 Entrar com Google</button>
+  </div>
+</div>
+
+<!-- SCAN OVERLAY -->
+<div id="scanOverlay">
+  <div class="scan-header">
+    <span id="scanTitulo">Escanear</span>
+    <span class="step" id="scanStep">Passo 1 de 2</span>
+  </div>
+  <div class="rbox"><div id="reader"></div></div>
+  <div class="scan-info-box" id="scanInfoBox">Aponte para o código de barras</div>
+  <div class="scan-footer">
+    <button id="btnCancelarScan" onclick="cancelarScan()">✕ Cancelar</button>
+    <button id="btnSalvarScan" style="display:none" onclick="salvarScan()">✓ Confirmar Baixa</button>
+  </div>
+</div>
+
+<!-- AVULSO OVERLAY -->
+<div class="overlay" id="overlayAvulso">
+  <div class="sheet">
+    <h3 id="avulsoTitulo">Adicionar item avulso</h3>
+    <div class="field-row">
+      <input class="setup-in" id="av_idEnvio" placeholder="ID_ENVIO">
+      <button class="scan-field-btn" onclick="abrirScannerAvulso('av_idEnvio')">📷</button>
+    </div>
+    <div class="field-row">
+      <input class="setup-in" id="av_idVenda" placeholder="ID_VENDA">
+      <button class="scan-field-btn" onclick="abrirScannerAvulso('av_idVenda')">📷</button>
+    </div>
+    <div style="margin-bottom:11px">
+      <input class="setup-in" id="av_loja" placeholder="Loja">
+    </div>
+    <div style="margin-bottom:11px">
+      <input class="setup-in" id="av_pedido" placeholder="Pedido">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancelar" onclick="fecharModalAvulso()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvarAvulso()">✓ Salvar</button>
+    </div>
   </div>
 </div>
 
 <header>
   <span>📦 Romaneio Grupo</span>
-  <div class="header-actions">
-    <button class="icobtn" onclick="carregarTudo()" title="Atualizar">🔄</button>
-    <button class="icobtn" onclick="openConfig()">⚙</button>
+  <div class="header-right">
+    <span id="authStatus"></span>
+    <button class="icobtn" onclick="carregarTudo()" title="Recarregar">🔄</button>
+    <button id="authBtn" onclick="logout()" style="display:none">Sair</button>
   </div>
 </header>
 
@@ -402,18 +189,14 @@ label {
 
 <div class="panel active" id="tab-info">
   <div class="dash-body">
-    <div class="grid-dash" id="dashGrid">
-      <div class="loading">Carregando indicadores...</div>
-    </div>
+    <div class="grid-dash" id="dashGrid"><div class="loading">Carregando indicadores...</div></div>
   </div>
 </div>
 
 <div class="panel" id="tab-ml">
   <div class="list-body">
-    <div class="search-bar">
-      <input id="busca-ml" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('ml', this.value)" autocomplete="off">
-    </div>
-    <div class="qlist" id="qlist-ml"><div class="empty">Carregando lista...</div></div>
+    <div class="search-bar"><input id="busca-ml" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('ml',this.value)"></div>
+    <div class="qlist" id="qlist-ml"><div class="loading">Carregando...</div></div>
   </div>
   <div class="fab-bar">
     <button class="btn-scan" onclick="abrirScanner('ml')">📷 Scan</button>
@@ -423,10 +206,8 @@ label {
 
 <div class="panel" id="tab-sh">
   <div class="list-body">
-    <div class="search-bar">
-      <input id="busca-sh" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('sh', this.value)" autocomplete="off">
-    </div>
-    <div class="qlist" id="qlist-sh"><div class="empty">Carregando lista...</div></div>
+    <div class="search-bar"><input id="busca-sh" placeholder="Pesquisar ID, Pedido, Loja..." oninput="filtrar('sh',this.value)"></div>
+    <div class="qlist" id="qlist-sh"><div class="loading">Carregando...</div></div>
   </div>
   <div class="fab-bar">
     <button class="btn-scan" onclick="abrirScanner('sh')">📷 Scan</button>
@@ -434,355 +215,382 @@ label {
   </div>
 </div>
 
-<div class="overlay" id="overlayAvulso">
-  <div class="sheet">
-    <h3 id="avulsoTitulo">Adicionar item avulso</h3>
-    <label style="margin-top:14px">ID_ENVIO</label>
-    <input class="setup-in" id="av_idEnvio">
-    <label>ID_VENDA</label>
-    <input class="setup-in" id="av_idVenda">
-    <label>Loja</label>
-    <input class="setup-in" id="av_loja">
-    <label>Pedido</label>
-    <input class="setup-in" id="av_pedido">
-    <div class="sheet-actions">
-      <button class="btn-cancelar" onclick="fecharModalAvulso()">Cancelar</button>
-      <button class="btn-salvar" onclick="salvarAvulso()">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<div id="scanOverlay">
-  <div class="scan-header">
-    <span id="scanTitulo">Escaneie o ID_ENVIO</span>
-    <span class="step" id="scanStep">Passo 1 de 2</span>
-  </div>
-  <div class="rbox">
-    <video id="scanVideo" autoplay muted playsinline></video>
-    <div class="flash" id="scanFlash"></div>
-  </div>
-  <div class="scan-info-box" id="scanInfoBox">Aponte a câmera para o código de barras do envio.</div>
-  <div class="scan-footer">
-    <button class="btn-cancelar-scan" onclick="cancelarScan()">Cancelar</button>
-    <button class="btn-salvar" id="btnSalvarScan" style="display:none;" onclick="salvarScan()">Salvar Baixa</button>
-  </div>
-</div>
-
-<div class="toast" id="toast">Carregando dados...</div>
+<div class="toast" id="toast"></div>
 
 <script>
-// ════════════════════════════════════════
-// CONFIG / ESTADO GLOBAL
-// ════════════════════════════════════════
-let cfg = { ml:'MERCADO LIVRE', sh:'SHOPEE', info:'INFO' };
-let dadosML = [], dadosSH = [];
-let activeTab = 'info';
+// ═══════════════════════════════════════════════
+// CONFIGURAÇÕES — edite se necessário
+// ═══════════════════════════════════════════════
+const SHEET_ID   = '1-McxgLcYP5fqtJ66uSeIpE1TWVZ1d93QKXWiJZaczOM';
+const API_KEY    = 'AIzaSyCdIX-ztySPZHC5ED6xaePVf8f9A-sOFH0';
+const CLIENT_ID  = '534134862857-5j4tvmk4ougqk55sne8afe61dhlviruj.apps.googleusercontent.com';
+const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets';
 
-let videoStream = null;
-let detector = null;
-let rafId = null;
-let scanEtapa = 1;
-let scanTab = '';
+const ABAS = { info: 'INFO', ml: 'MERCADO LIVRE', sh: 'SHOPEE' };
+
+// ═══════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════
+let accessToken   = null;
+let dadosML       = [];
+let dadosSH       = [];
+let scanTab       = '';
+let scanEtapa     = 0;
 let linhaEncontrada = null;
 let pedidoEscaneado = '';
+let html5Scanner  = null;
+let avulsoTab     = '';
+let avulsoCampoAlvo = '';
+let tokenClient   = null;
 
-window.onload = () => {
-  const saved = localStorage.getItem('expedicao_cfg_v2');
-  if (saved) { 
-    cfg = JSON.parse(saved); 
-  } else {
-    document.getElementById('setup-ov').style.display = 'flex';
+// ═══════════════════════════════════════════════
+// AUTH — Google Identity Services
+// ═══════════════════════════════════════════════
+function iniciarLogin() {
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (resp) => {
+        if (resp.error) { toast('Erro no login: ' + resp.error); return; }
+        accessToken = resp.access_token;
+        onLoginOk();
+      }
+    });
   }
-  carregarTudo();
-};
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
 
-function saveConfig() {
-  cfg = {
-    ml: document.getElementById('cfg-ml').value.trim() || 'MERCADO LIVRE',
-    sh: document.getElementById('cfg-sh').value.trim() || 'SHOPEE',
-    info: document.getElementById('cfg-info').value.trim() || 'INFO'
-  };
-  localStorage.setItem('expedicao_cfg_v2', JSON.stringify(cfg));
-  document.getElementById('setup-ov').style.display = 'none';
+function onLoginOk() {
+  document.getElementById('authWall').style.display = 'none';
+  document.getElementById('authBtn').style.display = 'block';
+  document.getElementById('authStatus').textContent = '●';
+  document.getElementById('authStatus').style.color = '#81c784';
   carregarTudo();
 }
 
-function openConfig() {
-  document.getElementById('cfg-ml').value = cfg.ml;
-  document.getElementById('cfg-sh').value = cfg.sh;
-  document.getElementById('cfg-info').value = cfg.info;
-  document.getElementById('setup-ov').style.display = 'flex';
+function logout() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  dadosML = []; dadosSH = [];
+  document.getElementById('authWall').style.display = 'flex';
+  document.getElementById('authBtn').style.display = 'none';
+  document.getElementById('authStatus').textContent = '';
 }
 
-// ════════════════════════════════════════
-// NAVEGAÇÃO DE ABAS
-// ════════════════════════════════════════
-function goTab(t) {
-  activeTab = t;
+// ═══════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════
+function goTab(tab) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + t).classList.add('active');
-  document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
 }
 
-// ════════════════════════════════════════
-// SINCRONIZAÇÃO COM O GOOGLE SHEETS
-// ════════════════════════════════════════
-function carregarTudo() {
-  toast('Atualizando dados da Planilha...');
-  
-  // Atualiza Dashboard
-  google.script.run
-    .withSuccessHandler(renderDashboard)
-    .withFailureHandler(err => {
-      document.getElementById('dashGrid').innerHTML = `<div class="loading">Erro no painel: ${err.message}</div>`;
-    })
-    .getDashboardData(cfg);
-
-  // Atualiza Mercado Livre
-  google.script.run
-    .withSuccessHandler(rows => {
-      dadosML = rows || [];
-      renderLista('ml', dadosML);
-    })
-    .getListData(cfg.ml);
-
-  // Atualiza Shopee
-  google.script.run
-    .withSuccessHandler(rows => {
-      dadosSH = rows || [];
-      renderLista('sh', dadosSH);
-    })
-    .getListData(cfg.sh);
+// ═══════════════════════════════════════════════
+// SHEETS API — LEITURA
+// ═══════════════════════════════════════════════
+async function sheetsGet(range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('Erro leitura: ' + r.status);
+  return (await r.json()).values || [];
 }
 
-function renderDashboard(d) {
-  if (!d || d.error) { 
-    document.getElementById('dashGrid').innerHTML = `<div class="loading">Crie a aba INFO com as fórmulas ou configure corretamente.</div>`; 
-    return; 
+// ═══════════════════════════════════════════════
+// SHEETS API — ESCRITA (requer OAuth)
+// ═══════════════════════════════════════════════
+async function sheetsUpdate(range, values) {
+  if (!accessToken) { toast('Faça login primeiro!'); return null; }
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ range, majorDimension: 'ROWS', values })
+  });
+  if (!r.ok) {
+    const err = await r.json();
+    throw new Error(err.error?.message || 'Erro escrita');
   }
-  document.getElementById('dashGrid').innerHTML =
-    `<div class="card full"><div class="valor">${d.totalML || 0}</div><div class="rotulo">Total Mercado Livre</div></div>
-     <div class="card full"><div class="valor">${d.totalSH || 0}</div><div class="rotulo">Total Shopee</div></div>
-     <div class="card ml-card"><div class="valor">${d.mlDome || 0}</div><div class="rotulo">ML Dome</div></div>
-     <div class="card ml-card"><div class="valor">${d.mlAmazzo || 0}</div><div class="rotulo">ML Amazzo</div></div>
-     <div class="card sh-card"><div class="valor">${d.shDome || 0}</div><div class="rotulo">SH Dome</div></div>
-     <div class="card sh-card"><div class="valor">${d.shAmazzo || 0}</div><div class="rotulo">SH Amazzo</div></div>`;
+  return await r.json();
+}
+
+async function sheetsAppend(sheetName, values) {
+  if (!accessToken) { toast('Faça login primeiro!'); return null; }
+  const range = `'${sheetName}'!A1`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ range, majorDimension: 'ROWS', values: [values] })
+  });
+  if (!r.ok) {
+    const err = await r.json();
+    throw new Error(err.error?.message || 'Erro append');
+  }
+  return await r.json();
+}
+
+// ═══════════════════════════════════════════════
+// CARREGAR DADOS
+// ═══════════════════════════════════════════════
+async function carregarTudo() {
+  carregarDash();
+  carregarLista('ml');
+  carregarLista('sh');
+}
+
+async function carregarDash() {
+  try {
+    const rows = await sheetsGet(`'${ABAS.info}'!A1:B10`);
+    const map = {};
+    rows.forEach(r => { if (r[0]) map[r[0].trim().toUpperCase()] = r[1] || '0'; });
+
+    const totalML = (parseInt(map['ML DOME']||0) + parseInt(map['ML AMAZZO']||0));
+    const totalSH = (parseInt(map['SH DOME']||0) + parseInt(map['SH AMAZZO']||0));
+
+    document.getElementById('dashGrid').innerHTML = `
+      <div class="card full"><div class="valor">${totalML + totalSH}</div><div class="rotulo">Total Geral</div></div>
+      <div class="card-section-title">Mercado Livre</div>
+      <div class="card ml-card"><div class="valor">${map['TOTAL MERCADO']||totalML}</div><div class="rotulo">Total ML</div></div>
+      <div class="card ml-card"><div class="valor">${map['ML DOME']||'—'}</div><div class="rotulo">ML Dome</div></div>
+      <div class="card ml-card"><div class="valor">${map['ML AMAZZO']||'—'}</div><div class="rotulo">ML Amazzo</div></div>
+      <div class="card-section-title">Shopee</div>
+      <div class="card sh-card"><div class="valor">${map['TOTAL SHOPEE']||totalSH}</div><div class="rotulo">Total Shopee</div></div>
+      <div class="card sh-card"><div class="valor">${map['SH DOME']||'—'}</div><div class="rotulo">SH Dome</div></div>
+      <div class="card sh-card"><div class="valor">${map['SH AMAZZO']||'—'}</div><div class="rotulo">SH Amazzo</div></div>
+    `;
+  } catch(e) {
+    document.getElementById('dashGrid').innerHTML = '<div class="empty">Erro ao carregar indicadores.</div>';
+  }
+}
+
+async function carregarLista(tab) {
+  const el = document.getElementById('qlist-' + tab);
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+  try {
+    const sheetName = ABAS[tab];
+    const rows = await sheetsGet(`'${sheetName}'!A1:E500`);
+    if (!rows.length) { el.innerHTML = '<div class="empty">Sem registros.</div>'; return; }
+    const headers = rows[0];
+    const items = rows.slice(1).map((r, i) => {
+      const obj = { _row: i + 2 };
+      headers.forEach((h, j) => obj[h.trim()] = r[j] || '');
+      return obj;
+    }).filter(i => i.ID_ENVIO);
+
+    if (tab === 'ml') dadosML = items;
+    else dadosSH = items;
+    renderLista(tab, items);
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Erro ao carregar lista.</div>';
+    console.error(e);
+  }
 }
 
 function renderLista(tab, lista) {
   const el = document.getElementById('qlist-' + tab);
-  if (!lista || !lista.length) { 
-    el.innerHTML = '<div class="empty">Nenhum registro encontrado nesta aba.</div>'; 
-    return; 
-  }
-  el.innerHTML = lista.map(item => itemHTML(item, '')).join('');
-}
-
-function campo(item, nome) {
-  if (item[nome] !== undefined && item[nome] !== '') return item[nome];
-  const u = nome.toUpperCase();
-  if (item[u] !== undefined && item[u] !== '') return item[u];
-  return '';
-}
-
-function itemHTML(item, term) {
-  const pedido    = campo(item, 'PEDIDO');
-  const dataBaixa = campo(item, 'DATA_BAIXA');
-  const idEnvio   = campo(item, 'ID_ENVIO');
-  const idVenda   = campo(item, 'ID_VENDA');
-  const loja      = campo(item, 'LOJA');
-  const completo  = pedido && dataBaixa;
-  const badge = completo ? '<span class="badge ok">Baixado</span>' : '<span class="badge pend">Pendente</span>';
-  
-  return `<div class="qi">
-    <div class="qi-top"><span class="qi-id">${hl(idEnvio, term)}</span>${badge}</div>
-    <div class="qi-loja">${hl(loja || '-', term)}</div>
-    <div class="qi-grid">
-      <div>Venda: <b>${hl(idVenda || '-', term)}</b></div>
-      <div>Pedido: <b>${hl(pedido || '-', term)}</b></div>
-      <div style="grid-column:1/-1">Data baixa: <b>${dataBaixa || '-'}</b></div>
-    </div>
-  </div>`;
+  if (!lista.length) { el.innerHTML = '<div class="empty">Nenhum registro.</div>'; return; }
+  el.innerHTML = lista.map(item => {
+    const baixado = !!(item.PEDIDO && item.DATA_BAIXA);
+    return `<div class="qi">
+      <div class="qi-top"><span class="qi-id">${item.ID_ENVIO}</span><span class="badge ${baixado?'ok':'pend'}">${baixado?'Baixado':'Pendente'}</span></div>
+      <div class="qi-loja">${item.LOJA||'—'}</div>
+      <div class="qi-grid">
+        <div>Venda: <b>${item.ID_VENDA||'—'}</b></div>
+        <div>Pedido: <b>${item.PEDIDO||'—'}</b></div>
+        <div style="grid-column:1/-1">Baixa: <b>${item.DATA_BAIXA||'—'}</b></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function filtrar(tab, termo) {
   const base = tab === 'ml' ? dadosML : dadosSH;
   const t = termo.trim().toLowerCase();
-  const el = document.getElementById('qlist-' + tab);
   if (!t) { renderLista(tab, base); return; }
-  
-  const filtrado = base.filter(item => Object.keys(item).some(k => String(item[k] || '').toLowerCase().includes(t)));
-  if (!filtrado.length) { el.innerHTML = `<div class="empty">Sem resultados para "${esc(termo)}"</div>`; return; }
-  el.innerHTML = filtrado.map(item => itemHTML(item, t)).join('');
+  renderLista(tab, base.filter(i => Object.values(i).some(v => String(v).toLowerCase().includes(t))));
 }
 
-// ════════════════════════════════════════
-// EVENTOS: ITEM AVULSO
-// ════════════════════════════════════════
-let avulsoTab = '';
-function abrirModalAvulso(tab) {
-  avulsoTab = tab;
-  document.getElementById('avulsoTitulo').textContent = 'Adicionar item avulso — ' + (tab === 'ml' ? 'Mercado Livre' : 'Shopee');
-  document.getElementById('overlayAvulso').classList.add('show');
-}
-function fecharModalAvulso() {
-  document.getElementById('overlayAvulso').classList.remove('show');
-  ['av_idEnvio','av_idVenda','av_loja','av_pedido'].forEach(id => document.getElementById(id).value = '');
-}
-function salvarAvulso() {
-  const item = {
-    ID_ENVIO: document.getElementById('av_idEnvio').value.trim(),
-    ID_VENDA: document.getElementById('av_idVenda').value.trim(),
-    LOJA: document.getElementById('av_loja').value.trim(),
-    PEDIDO: document.getElementById('av_pedido').value.trim()
-  };
-  if (!item.ID_ENVIO) { toast('Informe obrigatoriamente o ID_ENVIO'); return; }
-  
-  const sheetName = avulsoTab === 'ml' ? cfg.ml : cfg.sh;
-  toast('Adicionando linha...');
-  
-  google.script.run
-    .withSuccessHandler(res => {
-      if (res.success) {
-        toast('Item avulso inserido!');
-        fecharModalAvulso();
-        carregarTudo();
-      } else {
-        toast('Erro: ' + res.error);
-      }
-    })
-    .addItemAction(sheetName, item);
-}
-
-// ════════════════════════════════════════
-// SCANNER INTEGRADO (BarcodeDetector Nativo)
-// ════════════════════════════════════════
-async function abrirScanner(tab) {
-  if (!('BarcodeDetector' in window)) {
-    toast('Navegador incompatível com leitura nativa. Use o Chrome ou Android atualizado.');
-    return;
-  }
+// ═══════════════════════════════════════════════
+// SCANNER
+// ═══════════════════════════════════════════════
+function abrirScanner(tab) {
   scanTab = tab;
   scanEtapa = 1;
   linhaEncontrada = null;
   pedidoEscaneado = '';
   document.getElementById('scanTitulo').textContent = 'Escaneie o ID_ENVIO';
   document.getElementById('scanStep').textContent = 'Passo 1 de 2';
-  document.getElementById('scanInfoBox').innerHTML = 'Aponte para o código de barras da **Etiqueta de Envio**.';
+  document.getElementById('scanInfoBox').innerHTML = 'Aponte para a etiqueta de envio';
   document.getElementById('btnSalvarScan').style.display = 'none';
   document.getElementById('scanOverlay').classList.add('show');
+  iniciarCamera(onScanSuccess);
+}
 
-  try {
-    videoStream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } 
+function iniciarCamera(callback) {
+  // Limpa instância anterior se existir
+  if (html5Scanner) {
+    html5Scanner.stop().catch(() => {}).finally(() => {
+      html5Scanner = null;
+      _startCamera(callback);
     });
-    const video = document.getElementById('scanVideo');
-    video.srcObject = videoStream;
+  } else {
+    _startCamera(callback);
+  }
+}
 
-    const fmts = await BarcodeDetector.getSupportedFormats();
-    detector = new BarcodeDetector({ formats: fmts });
-    scanLoop();
-  } catch(e) {
-    toast('Sem acesso à câmera traseira.');
-    cancelarScan();
+function _startCamera(callback) {
+  html5Scanner = new Html5Qrcode("reader");
+  html5Scanner.start(
+    { facingMode: "environment" },
+    { fps: 15, qrbox: (w) => ({ width: Math.floor(w * 0.85), height: 130 }) },
+    callback
+  ).catch(() => {
+    // Fallback câmera frontal
+    html5Scanner.start(
+      { facingMode: "user" },
+      { fps: 15, qrbox: { width: 260, height: 130 } },
+      callback
+    ).catch(() => {
+      toast("Câmera indisponível. Verifique as permissões.");
+      fecharOverlayScan();
+    });
+  });
+}
+
+function fecharOverlayScan() {
+  document.getElementById('scanOverlay').classList.remove('show');
+}
+
+function cancelarScan() {
+  const fechar = () => {
+    html5Scanner = null;
+    fecharOverlayScan();
+  };
+  if (html5Scanner) {
+    html5Scanner.stop().then(fechar).catch(fechar);
+  } else {
+    fecharOverlayScan();
   }
 }
 
 let lastCode = '', lastTime = 0;
-async function scanLoop() {
-  const video = document.getElementById('scanVideo');
-  if (!videoStream) return;
-  try {
-    const codes = await detector.detect(video);
-    if (codes.length) {
-      const value = codes[0].rawValue;
-      const now = Date.now();
-      if (value !== lastCode || now - lastTime > 1800) {
-        lastCode = value; lastTime = now;
-        onScanSuccess(value);
-      }
-    }
-  } catch(e) {}
-  rafId = requestAnimationFrame(scanLoop);
-}
+function onScanSuccess(decoded) {
+  const now = Date.now();
+  if (decoded === lastCode && now - lastTime < 2000) return;
+  lastCode = decoded; lastTime = now;
 
-function doFlash(ok) {
-  const el = document.getElementById('scanFlash');
-  el.className = 'flash ' + (ok ? 'fg' : 'fr');
-  setTimeout(() => el.className = 'flash', 220);
-}
+  const lista = scanTab === 'ml' ? dadosML : dadosSH;
 
-function onScanSuccess(codigo) {
-  const sheetName = scanTab === 'ml' ? cfg.ml : cfg.sh;
-  
   if (scanEtapa === 1) {
-    document.getElementById('scanInfoBox').innerHTML = `Buscando código <b>${esc(codigo)}</b> na planilha...`;
-    
-    google.script.run
-      .withSuccessHandler(item => {
-        if (!item) {
-          doFlash(false);
-          toast('ID_ENVIO não localizado nesta aba.');
-          document.getElementById('scanInfoBox').innerHTML = 'Não encontrado. Tente focar outro código.';
-          return;
-        }
-        doFlash(true);
-        linhaEncontrada = item;
-        scanEtapa = 2;
-        document.getElementById('scanTitulo').textContent = 'Escaneie o Pedido';
-        document.getElementById('scanStep').textContent = 'Passo 2 de 2';
-        document.getElementById('scanInfoBox').innerHTML = `Envio Localizado: <b>${esc(campo(item,'ID_ENVIO'))}</b> (${esc(campo(item,'LOJA'))})<br>Agora, aponte para o código do **Pedido/Nota**.`;
-      })
-      .findItemById(sheetName, codigo);
-      
+    document.getElementById('scanInfoBox').innerHTML = `Buscando: <b>${decoded}</b>...`;
+    const item = lista.find(i => String(i.ID_ENVIO).trim() === decoded.trim());
+    if (!item) {
+      toast('ID_ENVIO não encontrado nesta aba.');
+      document.getElementById('scanInfoBox').innerHTML = 'Não encontrado. Tente outro código.';
+      return;
+    }
+    linhaEncontrada = item;
+    scanEtapa = 2;
+    document.getElementById('scanTitulo').textContent = 'Escaneie o Pedido';
+    document.getElementById('scanStep').textContent = 'Passo 2 de 2';
+    document.getElementById('scanInfoBox').innerHTML = `✅ <b>${item.ID_ENVIO}</b> encontrado!<br>Agora aponte para o código do pedido.`;
   } else if (scanEtapa === 2) {
-    doFlash(true);
-    pedidoEscaneado = codigo;
-    document.getElementById('scanInfoBox').innerHTML = `Envio: <b>${esc(campo(linhaEncontrada,'ID_ENVIO'))}</b><br>Pedido Lido: <b>${esc(codigo)}</b><br><br>Pressione o botão azul abaixo para confirmar e dar baixa.`;
+    pedidoEscaneado = decoded;
+    document.getElementById('scanInfoBox').innerHTML = `Pedido lido: <b>${decoded}</b><br>Confirme para registrar a baixa.`;
     document.getElementById('btnSalvarScan').style.display = 'block';
   }
 }
 
-function salvarScan() {
+async function salvarScan() {
   if (!linhaEncontrada || !pedidoEscaneado) return;
-  const sheetName = scanTab === 'ml' ? cfg.ml : cfg.sh;
-  toast('Gravando informações...');
-  
-  google.script.run
-    .withSuccessHandler(res => {
-      if (res.success) {
-        toast('Baixa processada com sucesso!');
-        encerrarScanner();
-        carregarTudo();
-      } else {
-        toast('Erro ao processar: ' + res.error);
-      }
-    })
-    .saveScanAction(sheetName, linhaEncontrada._row, pedidoEscaneado);
+  toast('Salvando...');
+  try {
+    const sheetName = ABAS[scanTab];
+    const row = linhaEncontrada._row;
+    const agora = new Date().toLocaleString('pt-BR');
+    // Coluna D = PEDIDO, Coluna E = DATA_BAIXA
+    await sheetsUpdate(`'${sheetName}'!D${row}:E${row}`, [[pedidoEscaneado, agora]]);
+    toast('✅ Baixa registrada!');
+    cancelarScan();
+    carregarLista(scanTab);
+  } catch(e) {
+    toast('Erro ao salvar: ' + e.message);
+    console.error(e);
+  }
 }
 
-function cancelarScan() { encerrarScanner(); }
+// ═══════════════════════════════════════════════
+// SCANNER AVULSO (para preencher campo do modal)
+// ═══════════════════════════════════════════════
+function abrirScannerAvulso(campoId) {
+  avulsoCampoAlvo = campoId;
+  fecharModalAvulso();
+  const label = campoId === 'av_idEnvio' ? 'ID_ENVIO' : 'ID_VENDA';
+  document.getElementById('scanTitulo').textContent = 'Escanear ' + label;
+  document.getElementById('scanStep').textContent = 'Modo avulso';
+  document.getElementById('scanInfoBox').innerHTML = `Aponte para o código do <b>${label}</b>`;
+  document.getElementById('btnSalvarScan').style.display = 'none';
+  document.getElementById('scanOverlay').classList.add('show');
+  scanEtapa = 99;
 
-function encerrarScanner() {
-  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  if (videoStream) { videoStream.getTracks().forEach(tr => tr.stop()); videoStream = null; }
-  document.getElementById('scanOverlay').classList.remove('show');
+  iniciarCamera((decoded) => {
+    document.getElementById(avulsoCampoAlvo).value = decoded;
+    const fechar = () => {
+      html5Scanner = null;
+      fecharOverlayScan();
+      abrirModalAvulso(avulsoTab);
+    };
+    if (html5Scanner) html5Scanner.stop().then(fechar).catch(fechar);
+    else fechar();
+  });
 }
 
-// ════════════════════════════════════════
-// FERRAMENTAS AUXILIARES
-// ════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// MODAL AVULSO
+// ═══════════════════════════════════════════════
+function abrirModalAvulso(tab) {
+  avulsoTab = tab;
+  document.getElementById('avulsoTitulo').textContent = `Adicionar item avulso — ${tab.toUpperCase()}`;
+  document.getElementById('overlayAvulso').classList.add('show');
+}
+function fecharModalAvulso() {
+  document.getElementById('overlayAvulso').classList.remove('show');
+}
+
+async function salvarAvulso() {
+  const idEnvio = document.getElementById('av_idEnvio').value.trim();
+  const idVenda = document.getElementById('av_idVenda').value.trim();
+  const loja    = document.getElementById('av_loja').value.trim();
+  const pedido  = document.getElementById('av_pedido').value.trim();
+  if (!idEnvio) { toast('Insira o ID_ENVIO!'); return; }
+  toast('Salvando...');
+  try {
+    const sheetName = ABAS[avulsoTab];
+    await sheetsAppend(sheetName, [idEnvio, idVenda, loja, pedido, '']);
+    toast('✅ Item adicionado!');
+    fecharModalAvulso();
+    // Limpa campos
+    ['av_idEnvio','av_idVenda','av_loja','av_pedido'].forEach(id => document.getElementById(id).value = '');
+    carregarLista(avulsoTab);
+  } catch(e) {
+    toast('Erro: ' + e.message);
+    console.error(e);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+let toastTimer;
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2400);
-}
-function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function hl(str, term) {
-  if (!term || !str) return esc(str || '');
-  return esc(str).replace(new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'), '<span class="hi">$1</span>');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
 </script>
 </body>
