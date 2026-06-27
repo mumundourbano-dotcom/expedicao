@@ -293,11 +293,47 @@ function iniciarLogin() {
       callback: (resp) => {
         if (resp.error) { toast('Erro no login: ' + resp.error); return; }
         accessToken = resp.access_token;
+        // Salva token e expiração (tokens duram ~1h, salvamos por 55min)
+        const expiry = Date.now() + 55 * 60 * 1000;
+        localStorage.setItem('gtoken', accessToken);
+        localStorage.setItem('gtoken_exp', expiry);
         onLoginOk();
       }
     });
   }
   tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function tentarLoginSilencioso() {
+  const token = localStorage.getItem('gtoken');
+  const exp   = parseInt(localStorage.getItem('gtoken_exp') || '0');
+  if (token && Date.now() < exp) {
+    // Token ainda válido — usa direto sem popup
+    accessToken = token;
+    onLoginOk();
+    return;
+  }
+  // Tenta renovar sem popup (funciona se já autorizou antes)
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      prompt: '',
+      callback: (resp) => {
+        if (resp.error || !resp.access_token) {
+          // Falhou silenciosamente — mostra tela de login
+          document.getElementById('authWall').style.display = 'flex';
+          return;
+        }
+        accessToken = resp.access_token;
+        const expiry = Date.now() + 55 * 60 * 1000;
+        localStorage.setItem('gtoken', accessToken);
+        localStorage.setItem('gtoken_exp', expiry);
+        onLoginOk();
+      }
+    });
+  }
+  tokenClient.requestAccessToken({ prompt: '' });
 }
 
 function onLoginOk() {
@@ -311,15 +347,30 @@ function onLoginOk() {
 function logout() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
   accessToken = null;
+  localStorage.removeItem('gtoken');
+  localStorage.removeItem('gtoken_exp');
   dadosML = []; dadosSH = [];
   document.getElementById('authWall').style.display = 'flex';
   document.getElementById('authBtn').style.display = 'none';
   document.getElementById('authStatus').textContent = '';
 }
 
-// ═══════════════════════════════════════════════
-// NAVEGAÇÃO
-// ═══════════════════════════════════════════════
+// Ao carregar a página, tenta login silencioso antes de mostrar auth wall
+window.addEventListener('load', () => {
+  // Aguarda a lib Google carregar
+  const interval = setInterval(() => {
+    if (window.google && google.accounts) {
+      clearInterval(interval);
+      tentarLoginSilencioso();
+    }
+  }, 200);
+  // Timeout de 5s — se não carregar, mostra login manual
+  setTimeout(() => {
+    clearInterval(interval);
+    if (!accessToken) document.getElementById('authWall').style.display = 'flex';
+  }, 5000);
+});
+
 function goTab(tab) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -544,7 +595,6 @@ function confirmarManual() {
   if (!val) { toast('Digite um código!'); return; }
   document.getElementById('scanManualInput').value = '';
   if (scanEtapa === 99) {
-    // modo avulso
     document.getElementById(avulsoCampoAlvo).value = val;
     const fechar = () => {
       html5Scanner = null;
@@ -554,24 +604,30 @@ function confirmarManual() {
     if (html5Scanner) html5Scanner.stop().then(fechar).catch(fechar);
     else fechar();
   } else {
-    onScanSuccess(val);
+    // isManual=true bypassa o debounce
+    onScanSuccess(val, true);
   }
 }
 
 
-function onScanSuccess(decoded) {
+let lastCode = '', lastTime = 0;
+function onScanSuccess(decoded, isManual = false) {
   const now = Date.now();
-  if (decoded === lastCode && now - lastTime < 2000) return;
+  // Debounce só para leituras físicas (não para entrada manual)
+  if (!isManual && decoded === lastCode && now - lastTime < 2000) return;
   lastCode = decoded; lastTime = now;
 
+  // Normaliza: remove espaços extras
+  const norm = (s) => String(s).trim().replace(/\s+/g, '');
   const lista = scanTab === 'ml' ? dadosML : dadosSH;
 
   if (scanEtapa === 1) {
     document.getElementById('scanInfoBox').innerHTML = `Buscando: <b>${decoded}</b>...`;
-    const item = lista.find(i => String(i.ID_ENVIO).trim() === decoded.trim());
+    const item = lista.find(i => norm(i.ID_ENVIO) === norm(decoded));
     if (!item) {
-      toast('ID_ENVIO não encontrado nesta aba.');
-      document.getElementById('scanInfoBox').innerHTML = 'Não encontrado. Tente outro código.';
+      // Mostra o código lido para diagnóstico
+      document.getElementById('scanInfoBox').innerHTML =
+        `❌ Não encontrado.<br><small style="color:#aaa">Lido: <b style="color:#ff9">${decoded}</b></small><br>Verifique o código ou digite manualmente.`;
       return;
     }
     linhaEncontrada = item;
