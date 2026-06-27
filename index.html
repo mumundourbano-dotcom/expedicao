@@ -292,8 +292,16 @@ function goTab(tab) {
 // SHEETS API — LEITURA
 // ═══════════════════════════════════════════════
 async function sheetsGet(range) {
+  // Tenta primeiro com API Key (leitura pública)
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
-  const r = await fetch(url);
+  let r = await fetch(url);
+
+  // Se falhar (planilha privada ou key inválida), usa o token OAuth
+  if (!r.ok && accessToken) {
+    const url2 = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`;
+    r = await fetch(url2, { headers: { 'Authorization': 'Bearer ' + accessToken } });
+  }
+
   if (!r.ok) throw new Error('Erro leitura: ' + r.status);
   return (await r.json()).values || [];
 }
@@ -354,7 +362,10 @@ async function carregarDash() {
 
     const v = (key) => map[key] || '—';
 
+    const totalML = parseInt(v('TOTAL MERCADO'))||0;
+    const totalSH = parseInt(v('TOTAL SHOPEE'))||0;
     document.getElementById('dashGrid').innerHTML = `
+      <div class="card full"><div class="valor">${totalML + totalSH}</div><div class="rotulo">Total Geral</div></div>
       <div class="card-section-title">Mercado Livre</div>
       <div class="card ml-card"><div class="valor">${v('TOTAL MERCADO')}</div><div class="rotulo">Total ML</div></div>
       <div class="card ml-card"><div class="valor">${v('ML DOME')}</div><div class="rotulo">ML Dome</div></div>
