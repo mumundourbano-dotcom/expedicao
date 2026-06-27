@@ -575,8 +575,7 @@ function _startCamera(callback) {
     {
       fps: 12,
       qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(Math.min(h, w) * 0.45) }),
-      disableFlip: false,
-      videoConstraints: { focusMode: 'continuous', advanced: [{ zoom: 1.5 }] }
+      disableFlip: false
     },
     callback
   ).catch(() => {
