@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Romaneio Grupo</title>
+<title>Romaneio Grupo Amazzo DomeLar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -343,26 +343,30 @@ async function carregarTudo() {
 
 async function carregarDash() {
   try {
-    const rows = await sheetsGet(`'${ABAS.info}'!A1:B10`);
-    const map = {};
-    rows.forEach(r => { if (r[0]) map[r[0].trim().toUpperCase()] = r[1] || '0'; });
+    // Linha 1 = cabeçalhos (A-F), Linha 2 = valores (A-F)
+    const rows = await sheetsGet(`'${ABAS.info}'!A1:F2`);
+    if (!rows || rows.length < 2) throw new Error('Dados insuficientes');
 
-    const totalML = (parseInt(map['ML DOME']||0) + parseInt(map['ML AMAZZO']||0));
-    const totalSH = (parseInt(map['SH DOME']||0) + parseInt(map['SH AMAZZO']||0));
+    const headers = rows[0].map(h => h.trim().toUpperCase());
+    const valores  = rows[1];
+    const map = {};
+    headers.forEach((h, i) => map[h] = valores[i] || '—');
+
+    const v = (key) => map[key] || '—';
 
     document.getElementById('dashGrid').innerHTML = `
-      <div class="card full"><div class="valor">${totalML + totalSH}</div><div class="rotulo">Total Geral</div></div>
       <div class="card-section-title">Mercado Livre</div>
-      <div class="card ml-card"><div class="valor">${map['TOTAL MERCADO']||totalML}</div><div class="rotulo">Total ML</div></div>
-      <div class="card ml-card"><div class="valor">${map['ML DOME']||'—'}</div><div class="rotulo">ML Dome</div></div>
-      <div class="card ml-card"><div class="valor">${map['ML AMAZZO']||'—'}</div><div class="rotulo">ML Amazzo</div></div>
+      <div class="card ml-card"><div class="valor">${v('TOTAL MERCADO')}</div><div class="rotulo">Total ML</div></div>
+      <div class="card ml-card"><div class="valor">${v('ML DOME')}</div><div class="rotulo">ML Dome</div></div>
+      <div class="card ml-card"><div class="valor">${v('ML AMAZZO')}</div><div class="rotulo">ML Amazzo</div></div>
       <div class="card-section-title">Shopee</div>
-      <div class="card sh-card"><div class="valor">${map['TOTAL SHOPEE']||totalSH}</div><div class="rotulo">Total Shopee</div></div>
-      <div class="card sh-card"><div class="valor">${map['SH DOME']||'—'}</div><div class="rotulo">SH Dome</div></div>
-      <div class="card sh-card"><div class="valor">${map['SH AMAZZO']||'—'}</div><div class="rotulo">SH Amazzo</div></div>
+      <div class="card sh-card"><div class="valor">${v('TOTAL SHOPEE')}</div><div class="rotulo">Total Shopee</div></div>
+      <div class="card sh-card"><div class="valor">${v('SH DOME')}</div><div class="rotulo">SH Dome</div></div>
+      <div class="card sh-card"><div class="valor">${v('SH AMAZZO')}</div><div class="rotulo">SH Amazzo</div></div>
     `;
   } catch(e) {
     document.getElementById('dashGrid').innerHTML = '<div class="empty">Erro ao carregar indicadores.</div>';
+    console.error(e);
   }
 }
 
