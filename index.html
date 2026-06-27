@@ -127,7 +127,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
 <div id="authWall">
   <div class="auth-box">
     <div style="font-size:48px">📦</div>
-    <h2 style="color:var(--azul-esc);margin:0">Romaneio Grupo</h2>
+    <h2 style="color:var(--azul-esc);margin:0">Romaneio Grupo Amazzo DomeLar</h2>
     <p style="color:#6b7785;text-align:center;font-size:13px">Faça login com sua conta Google para acessar e registrar expedições.</p>
     <button id="btnLogin" onclick="iniciarLogin()">🔐 Entrar com Google</button>
   </div>
@@ -141,6 +141,12 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
   </div>
   <div class="rbox"><div id="reader"></div></div>
   <div class="scan-info-box" id="scanInfoBox">Aponte para o código de barras</div>
+  <div id="scanManualBox" style="background:#222;padding:10px 12px;display:flex;gap:8px;align-items:center;border-top:1px solid #444">
+    <input id="scanManualInput" placeholder="Ou digite o código manualmente..."
+      style="flex:1;padding:9px 12px;border-radius:8px;border:none;font-family:'Montserrat',sans-serif;font-size:13px;outline:none;background:#333;color:#fff"
+      onkeydown="if(event.key==='Enter') confirmarManual()">
+    <button onclick="confirmarManual()" style="padding:9px 14px;border:none;border-radius:8px;background:var(--azul);color:#fff;font-family:'Montserrat',sans-serif;font-weight:700;cursor:pointer">OK</button>
+  </div>
   <div class="scan-footer">
     <button id="btnCancelarScan" onclick="cancelarScan()">✕ Cancelar</button>
     <button id="btnSalvarScan" style="display:none" onclick="salvarScan()">✓ Confirmar Baixa</button>
@@ -155,15 +161,15 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
       <input class="setup-in" id="av_idEnvio" placeholder="ID_ENVIO">
       <button class="scan-field-btn" onclick="abrirScannerAvulso('av_idEnvio')">📷</button>
     </div>
-    <div class="field-row">
-      <input class="setup-in" id="av_idVenda" placeholder="ID_VENDA">
-      <button class="scan-field-btn" onclick="abrirScannerAvulso('av_idVenda')">📷</button>
+    <div style="margin-bottom:11px">
+      <input class="setup-in" id="av_idVenda" placeholder="ID_VENDA (opcional)">
     </div>
     <div style="margin-bottom:11px">
       <input class="setup-in" id="av_loja" placeholder="Loja">
     </div>
-    <div style="margin-bottom:11px">
+    <div class="field-row">
       <input class="setup-in" id="av_pedido" placeholder="Pedido">
+      <button class="scan-field-btn" onclick="abrirScannerAvulso('av_pedido')">📷</button>
     </div>
     <div class="sheet-actions">
       <button class="btn-cancelar" onclick="fecharModalAvulso()">Cancelar</button>
@@ -173,7 +179,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
 </div>
 
 <header>
-  <span>📦 Romaneio Grupo</span>
+  <span>📦 Romaneio Grupo Amazzo DomeLar</span>
   <div class="header-right">
     <span id="authStatus"></span>
     <button class="icobtn" onclick="carregarTudo()" title="Recarregar">🔄</button>
@@ -212,6 +218,39 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
   <div class="fab-bar">
     <button class="btn-scan" onclick="abrirScanner('sh')">📷 Scan</button>
     <button class="btn-add" onclick="abrirModalAvulso('sh')">➕ Item avulso</button>
+  </div>
+</div>
+
+<!-- EDITAR ITEM OVERLAY -->
+<div class="overlay" id="overlayEditar">
+  <div class="sheet">
+    <h3>✏️ Editar item</h3>
+    <input type="hidden" id="ed_row">
+    <input type="hidden" id="ed_tab">
+    <div style="margin-bottom:11px">
+      <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">ID_ENVIO</label>
+      <input class="setup-in" id="ed_idEnvio" placeholder="ID_ENVIO" style="margin-top:4px">
+    </div>
+    <div style="margin-bottom:11px">
+      <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">ID_VENDA</label>
+      <input class="setup-in" id="ed_idVenda" placeholder="ID_VENDA" style="margin-top:4px">
+    </div>
+    <div style="margin-bottom:11px">
+      <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">Loja</label>
+      <input class="setup-in" id="ed_loja" placeholder="Loja" style="margin-top:4px">
+    </div>
+    <div style="margin-bottom:11px">
+      <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">Pedido</label>
+      <input class="setup-in" id="ed_pedido" placeholder="Pedido" style="margin-top:4px">
+    </div>
+    <div style="margin-bottom:11px">
+      <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">Data Baixa</label>
+      <input class="setup-in" id="ed_dataBaixa" placeholder="Data Baixa" style="margin-top:4px">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancelar" onclick="fecharModalEditar()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvarEdicao()">✓ Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -410,7 +449,13 @@ function renderLista(tab, lista) {
   el.innerHTML = lista.map(item => {
     const baixado = !!(item.PEDIDO && item.DATA_BAIXA);
     return `<div class="qi">
-      <div class="qi-top"><span class="qi-id">${item.ID_ENVIO}</span><span class="badge ${baixado?'ok':'pend'}">${baixado?'Baixado':'Pendente'}</span></div>
+      <div class="qi-top">
+        <span class="qi-id">${item.ID_ENVIO}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${baixado?'ok':'pend'}">${baixado?'Baixado':'Pendente'}</span>
+          <button onclick='abrirModalEditar(${JSON.stringify(item)}, "${tab}")' style="background:#f0f4ff;border:1px solid var(--cinza-borda);border-radius:6px;padding:4px 8px;font-size:13px;cursor:pointer">✏️</button>
+        </div>
+      </div>
       <div class="qi-loja">${item.LOJA||'—'}</div>
       <div class="qi-grid">
         <div>Venda: <b>${item.ID_VENDA||'—'}</b></div>
@@ -491,7 +536,29 @@ function cancelarScan() {
   }
 }
 
-let lastCode = '', lastTime = 0;
+// ═══════════════════════════════════════════════
+// ENTRADA MANUAL NO SCAN
+// ═══════════════════════════════════════════════
+function confirmarManual() {
+  const val = document.getElementById('scanManualInput').value.trim();
+  if (!val) { toast('Digite um código!'); return; }
+  document.getElementById('scanManualInput').value = '';
+  if (scanEtapa === 99) {
+    // modo avulso
+    document.getElementById(avulsoCampoAlvo).value = val;
+    const fechar = () => {
+      html5Scanner = null;
+      fecharOverlayScan();
+      abrirModalAvulso(avulsoTab);
+    };
+    if (html5Scanner) html5Scanner.stop().then(fechar).catch(fechar);
+    else fechar();
+  } else {
+    onScanSuccess(val);
+  }
+}
+
+
 function onScanSuccess(decoded) {
   const now = Date.now();
   if (decoded === lastCode && now - lastTime < 2000) return;
@@ -543,7 +610,8 @@ async function salvarScan() {
 function abrirScannerAvulso(campoId) {
   avulsoCampoAlvo = campoId;
   fecharModalAvulso();
-  const label = campoId === 'av_idEnvio' ? 'ID_ENVIO' : 'ID_VENDA';
+  const labels = { av_idEnvio: 'ID_ENVIO', av_pedido: 'PEDIDO', av_idVenda: 'ID_VENDA' };
+  const label = labels[campoId] || campoId;
   document.getElementById('scanTitulo').textContent = 'Escanear ' + label;
   document.getElementById('scanStep').textContent = 'Modo avulso';
   document.getElementById('scanInfoBox').innerHTML = `Aponte para o código do <b>${label}</b>`;
@@ -590,6 +658,46 @@ async function salvarAvulso() {
     // Limpa campos
     ['av_idEnvio','av_idVenda','av_loja','av_pedido'].forEach(id => document.getElementById(id).value = '');
     carregarLista(avulsoTab);
+  } catch(e) {
+    toast('Erro: ' + e.message);
+    console.error(e);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// MODAL EDITAR
+// ═══════════════════════════════════════════════
+function abrirModalEditar(item, tab) {
+  document.getElementById('ed_row').value = item._row;
+  document.getElementById('ed_tab').value = tab;
+  document.getElementById('ed_idEnvio').value  = item.ID_ENVIO  || '';
+  document.getElementById('ed_idVenda').value  = item.ID_VENDA  || '';
+  document.getElementById('ed_loja').value     = item.LOJA      || '';
+  document.getElementById('ed_pedido').value   = item.PEDIDO    || '';
+  document.getElementById('ed_dataBaixa').value= item.DATA_BAIXA|| '';
+  document.getElementById('overlayEditar').classList.add('show');
+}
+
+function fecharModalEditar() {
+  document.getElementById('overlayEditar').classList.remove('show');
+}
+
+async function salvarEdicao() {
+  const row    = document.getElementById('ed_row').value;
+  const tab    = document.getElementById('ed_tab').value;
+  const envio  = document.getElementById('ed_idEnvio').value.trim();
+  const venda  = document.getElementById('ed_idVenda').value.trim();
+  const loja   = document.getElementById('ed_loja').value.trim();
+  const pedido = document.getElementById('ed_pedido').value.trim();
+  const baixa  = document.getElementById('ed_dataBaixa').value.trim();
+  if (!envio) { toast('ID_ENVIO não pode ficar vazio!'); return; }
+  toast('Salvando...');
+  try {
+    const sheetName = ABAS[tab];
+    await sheetsUpdate(`'${sheetName}'!A${row}:E${row}`, [[envio, venda, loja, pedido, baixa]]);
+    toast('✅ Item atualizado!');
+    fecharModalEditar();
+    carregarLista(tab);
   } catch(e) {
     toast('Erro: ' + e.message);
     console.error(e);
