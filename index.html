@@ -167,7 +167,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
       <input class="setup-in" id="av_idVenda" placeholder="ID_VENDA (opcional)">
     </div>
     <div style="margin-bottom:11px">
-      <input class="setup-in" id="av_loja" placeholder="Loja">
+      <select class="setup-in" id="av_loja"></select>
     </div>
     <div class="field-row">
       <input class="setup-in" id="av_pedido" placeholder="Pedido">
@@ -698,9 +698,16 @@ function abrirScannerAvulso(campoId) {
 // ═══════════════════════════════════════════════
 // MODAL AVULSO
 // ═══════════════════════════════════════════════
+const LOJAS_POR_ABA = {
+  ml: ['ML DOME', 'ML AMAZZO'],
+  sh: ['SH AMAZZO', 'SH DOME']
+};
+
 function abrirModalAvulso(tab) {
   avulsoTab = tab;
   document.getElementById('avulsoTitulo').textContent = `Adicionar item avulso — ${tab.toUpperCase()}`;
+  const sel = document.getElementById('av_loja');
+  sel.innerHTML = LOJAS_POR_ABA[tab].map(l => `<option value="${l}">${l}</option>`).join('');
   document.getElementById('overlayAvulso').classList.add('show');
 }
 function fecharModalAvulso() {
