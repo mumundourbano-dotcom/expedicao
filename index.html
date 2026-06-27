@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Romaneio Grupo Amazzo DomeLar</title>
+<title>Romaneio Grupo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -127,7 +127,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
 <div id="authWall">
   <div class="auth-box">
     <div style="font-size:48px">📦</div>
-    <h2 style="color:var(--azul-esc);margin:0">Romaneio Grupo Amazzo DomeLar</h2>
+    <h2 style="color:var(--azul-esc);margin:0">Romaneio Grupo</h2>
     <p style="color:#6b7785;text-align:center;font-size:13px">Faça login com sua conta Google para acessar e registrar expedições.</p>
     <button id="btnLogin" onclick="iniciarLogin()">🔐 Entrar com Google</button>
   </div>
@@ -179,7 +179,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
 </div>
 
 <header>
-  <span>📦 Romaneio Grupo Amazzo DomeLar</span>
+  <span>📦 Romaneio Grupo</span>
   <div class="header-right">
     <span id="authStatus"></span>
     <button class="icobtn" onclick="carregarTudo()" title="Recarregar">🔄</button>
@@ -553,16 +553,35 @@ function iniciarCamera(callback) {
 }
 
 function _startCamera(callback) {
-  html5Scanner = new Html5Qrcode("reader");
+  html5Scanner = new Html5Qrcode("reader", {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.CODABAR,
+      Html5QrcodeSupportedFormats.QR_CODE
+    ],
+    verbose: false
+  });
   html5Scanner.start(
     { facingMode: "environment" },
-    { fps: 15, qrbox: (w) => ({ width: Math.floor(w * 0.85), height: 130 }) },
+    {
+      fps: 12,
+      qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(Math.min(h, w) * 0.45) }),
+      disableFlip: false,
+      videoConstraints: { focusMode: 'continuous', advanced: [{ zoom: 1.5 }] }
+    },
     callback
   ).catch(() => {
     // Fallback câmera frontal
     html5Scanner.start(
       { facingMode: "user" },
-      { fps: 15, qrbox: { width: 260, height: 130 } },
+      { fps: 12, qrbox: { width: 280, height: 160 } },
       callback
     ).catch(() => {
       toast("Câmera indisponível. Verifique as permissões.");
