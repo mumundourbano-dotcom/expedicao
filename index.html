@@ -626,12 +626,15 @@ function onScanSuccess(decoded, isManual = false) {
   const lista = scanTab === 'ml' ? dadosML : dadosSH;
 
   if (scanEtapa === 1) {
-    document.getElementById('scanInfoBox').innerHTML = `Buscando: <b>${decoded}</b>...`;
-    const item = lista.find(i => norm(i.ID_ENVIO) === norm(decoded));
+    // Algumas etiquetas usam QR Code com um JSON, ex: {"id":"46031078338","t":"lm"}.
+    // Nesse caso só interessa o valor do campo "id".
+    const idLido = extrairIdDoCodigo(decoded);
+    document.getElementById('scanInfoBox').innerHTML = `Buscando: <b>${idLido}</b>...`;
+    const item = lista.find(i => norm(i.ID_ENVIO) === norm(idLido));
     if (!item) {
       // Mostra o código lido para diagnóstico
       document.getElementById('scanInfoBox').innerHTML =
-        `❌ Não encontrado.<br><small style="color:#aaa">Lido: <b style="color:#ff9">${decoded}</b></small><br>Verifique o código ou digite manualmente.`;
+        `❌ Não encontrado.<br><small style="color:#aaa">Lido: <b style="color:#ff9">${idLido}</b></small><br>Verifique o código ou digite manualmente.`;
       return;
     }
     linhaEncontrada = item;
@@ -644,6 +647,24 @@ function onScanSuccess(decoded, isManual = false) {
     document.getElementById('scanInfoBox').innerHTML = `Pedido lido: <b>${decoded}</b><br>Confirme para registrar a baixa.`;
     document.getElementById('btnSalvarScan').style.display = 'block';
   }
+}
+
+// Se o código lido for um JSON (ex: etiqueta com QR Code {"id":"...","t":"lm"}),
+// extrai só o valor do campo "id". Caso contrário, devolve o código como veio
+// (código de barras tradicional já é só o número/texto puro).
+function extrairIdDoCodigo(valor) {
+  const texto = String(valor).trim();
+  if (texto.startsWith('{') && texto.endsWith('}')) {
+    try {
+      const obj = JSON.parse(texto);
+      if (obj && obj.id !== undefined && obj.id !== null) {
+        return String(obj.id).trim();
+      }
+    } catch (e) {
+      // Não é um JSON válido — usa o texto original mesmo
+    }
+  }
+  return texto;
 }
 
 async function salvarScan() {
@@ -682,7 +703,8 @@ function abrirScannerAvulso(campoId) {
   scanEtapa = 99;
 
   iniciarCamera((decoded) => {
-    document.getElementById(avulsoCampoAlvo).value = decoded;
+    const valor = (avulsoCampoAlvo === 'av_idEnvio') ? extrairIdDoCodigo(decoded) : decoded;
+    document.getElementById(avulsoCampoAlvo).value = valor;
     const fechar = () => {
       html5Scanner = null;
       fecharOverlayScan();
