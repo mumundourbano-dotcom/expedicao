@@ -173,6 +173,9 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
       <input class="setup-in" id="av_pedido" placeholder="Pedido">
       <button class="scan-field-btn" onclick="abrirScannerAvulso('av_pedido')">📷</button>
     </div>
+    <div style="margin-bottom:11px">
+      <input class="setup-in" id="av_sku" placeholder="SKU (opcional)">
+    </div>
     <div class="sheet-actions">
       <button class="btn-cancelar" onclick="fecharModalAvulso()">Cancelar</button>
       <button class="btn-salvar" onclick="salvarAvulso()">✓ Salvar</button>
@@ -244,6 +247,10 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
     <div style="margin-bottom:11px">
       <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">Pedido</label>
       <input class="setup-in" id="ed_pedido" placeholder="Pedido" style="margin-top:4px">
+    </div>
+    <div style="margin-bottom:11px">
+      <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">SKU</label>
+      <input class="setup-in" id="ed_sku" placeholder="SKU" style="margin-top:4px">
     </div>
     <div style="margin-bottom:11px">
       <label style="font-size:11px;font-weight:700;color:#6b7785;text-transform:uppercase">Data Baixa</label>
@@ -478,7 +485,7 @@ async function carregarLista(tab) {
   el.innerHTML = '<div class="loading">Carregando...</div>';
   try {
     const sheetName = ABAS[tab];
-    const rows = await sheetsGet(`'${sheetName}'!A1:E500`);
+    const rows = await sheetsGet(`'${sheetName}'!A1:F500`);
     if (!rows.length) { el.innerHTML = '<div class="empty">Sem registros.</div>'; return; }
     const headers = rows[0];
     const items = rows.slice(1).map((r, i) => {
@@ -513,7 +520,8 @@ function renderLista(tab, lista) {
       <div class="qi-grid">
         <div>Venda: <b>${item.ID_VENDA||'—'}</b></div>
         <div>Pedido: <b>${item.PEDIDO||'—'}</b></div>
-        <div style="grid-column:1/-1">Baixa: <b>${item.DATA_BAIXA||'—'}</b></div>
+        <div>SKU: <b>${item.SKU||'—'}</b></div>
+        <div>Baixa: <b>${item.DATA_BAIXA||'—'}</b></div>
       </div>
     </div>`;
   }).join('');
@@ -741,9 +749,9 @@ async function salvarAvulso() {
   const idVenda = document.getElementById('av_idVenda').value.trim();
   const loja    = document.getElementById('av_loja').value.trim();
   const pedido  = document.getElementById('av_pedido').value.trim();
+  const sku     = document.getElementById('av_sku').value.trim();
   if (!idEnvio) { toast('Insira o ID_ENVIO!'); return; }
 
-  // Normaliza para comparar (remove espaços)
   const norm = (s) => String(s || '').trim().replace(/\s+/g, '');
   const lista = avulsoTab === 'ml' ? dadosML : dadosSH;
   const existente = lista.find(i => norm(i.ID_ENVIO) === norm(idEnvio));
@@ -752,22 +760,20 @@ async function salvarAvulso() {
   try {
     const sheetName = ABAS[avulsoTab];
     if (existente) {
-      // Já existe esse ID_ENVIO na planilha — atualiza a linha em vez de duplicar.
-      // Mantém o que já estava preenchido quando o campo novo vier vazio.
       const novaVenda  = idVenda || existente.ID_VENDA || '';
       const novaLoja   = loja    || existente.LOJA     || '';
-      const novoPedido = pedido  || existente.PEDIDO    || '';
+      const novoPedido = pedido  || existente.PEDIDO   || '';
+      const novaSku    = sku     || existente.SKU       || '';
       const novaBaixa  = pedido ? new Date().toLocaleString('pt-BR') : (existente.DATA_BAIXA || '');
-      await sheetsUpdate(`'${sheetName}'!A${existente._row}:E${existente._row}`,
-        [[idEnvio, novaVenda, novaLoja, novoPedido, novaBaixa]]);
+      await sheetsUpdate(`'${sheetName}'!A${existente._row}:F${existente._row}`,
+        [[idEnvio, novaVenda, novaLoja, novoPedido, novaBaixa, novaSku]]);
       toast('✅ Item já existia — atualizado em vez de duplicar!');
     } else {
-      await sheetsAppend(sheetName, [idEnvio, idVenda, loja, pedido, '']);
+      await sheetsAppend(sheetName, [idEnvio, idVenda, loja, pedido, '', sku]);
       toast('✅ Item adicionado!');
     }
     fecharModalAvulso();
-    // Limpa campos
-    ['av_idEnvio','av_idVenda','av_loja','av_pedido'].forEach(id => document.getElementById(id).value = '');
+    ['av_idEnvio','av_idVenda','av_loja','av_pedido','av_sku'].forEach(id => document.getElementById(id).value = '');
     carregarLista(avulsoTab);
   } catch(e) {
     toast('Erro: ' + e.message);
@@ -785,6 +791,7 @@ function abrirModalEditar(item, tab) {
   document.getElementById('ed_idVenda').value  = item.ID_VENDA  || '';
   document.getElementById('ed_loja').value     = item.LOJA      || '';
   document.getElementById('ed_pedido').value   = item.PEDIDO    || '';
+  document.getElementById('ed_sku').value      = item.SKU       || '';
   document.getElementById('ed_dataBaixa').value= item.DATA_BAIXA|| '';
   document.getElementById('overlayEditar').classList.add('show');
 }
@@ -800,12 +807,13 @@ async function salvarEdicao() {
   const venda  = document.getElementById('ed_idVenda').value.trim();
   const loja   = document.getElementById('ed_loja').value.trim();
   const pedido = document.getElementById('ed_pedido').value.trim();
+  const sku    = document.getElementById('ed_sku').value.trim();
   const baixa  = document.getElementById('ed_dataBaixa').value.trim();
   if (!envio) { toast('ID_ENVIO não pode ficar vazio!'); return; }
   toast('Salvando...');
   try {
     const sheetName = ABAS[tab];
-    await sheetsUpdate(`'${sheetName}'!A${row}:E${row}`, [[envio, venda, loja, pedido, baixa]]);
+    await sheetsUpdate(`'${sheetName}'!A${row}:F${row}`, [[envio, venda, loja, pedido, baixa, sku]]);
     toast('✅ Item atualizado!');
     fecharModalEditar();
     carregarLista(tab);
