@@ -173,8 +173,9 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
       <input class="setup-in" id="av_pedido" placeholder="Pedido">
       <button class="scan-field-btn" onclick="abrirScannerAvulso('av_pedido')">📷</button>
     </div>
-    <div style="margin-bottom:11px">
-      <input class="setup-in" id="av_sku" placeholder="SKU (opcional)">
+    <div class="field-row">
+      <input class="setup-in" id="av_sku" placeholder="SKU">
+      <button class="scan-field-btn" onclick="abrirScannerAvulso('av_sku')">📷</button>
     </div>
     <div class="sheet-actions">
       <button class="btn-cancelar" onclick="fecharModalAvulso()">Cancelar</button>
@@ -521,7 +522,7 @@ function renderLista(tab, lista) {
         <div>Venda: <b>${item.ID_VENDA||'—'}</b></div>
         <div>Pedido: <b>${item.PEDIDO||'—'}</b></div>
         <div>SKU: <b>${item.SKU||'—'}</b></div>
-        <div>Baixa: <b>${item.DATA_BAIXA||'—'}</b></div>
+        <div style="grid-column:1/-1">Baixa: <b>${item.DATA_BAIXA||'—'}</b></div>
       </div>
     </div>`;
   }).join('');
@@ -699,7 +700,7 @@ async function salvarScan() {
 function abrirScannerAvulso(campoId) {
   avulsoCampoAlvo = campoId;
   fecharModalAvulso();
-  const labels = { av_idEnvio: 'ID_ENVIO', av_pedido: 'PEDIDO', av_idVenda: 'ID_VENDA' };
+  const labels = { av_idEnvio: 'ID_ENVIO', av_pedido: 'PEDIDO', av_idVenda: 'ID_VENDA', av_sku: 'SKU' };
   const label = labels[campoId] || campoId;
   document.getElementById('scanTitulo').textContent = '✏️ Preencher campo: ' + label;
   document.getElementById('scanStep').textContent = '⚠️ ITEM AVULSO';
@@ -752,6 +753,7 @@ async function salvarAvulso() {
   const sku     = document.getElementById('av_sku').value.trim();
   if (!idEnvio) { toast('Insira o ID_ENVIO!'); return; }
 
+  // Normaliza para comparar (remove espaços)
   const norm = (s) => String(s || '').trim().replace(/\s+/g, '');
   const lista = avulsoTab === 'ml' ? dadosML : dadosSH;
   const existente = lista.find(i => norm(i.ID_ENVIO) === norm(idEnvio));
@@ -760,19 +762,22 @@ async function salvarAvulso() {
   try {
     const sheetName = ABAS[avulsoTab];
     if (existente) {
+      // Já existe esse ID_ENVIO na planilha — atualiza a linha em vez de duplicar.
+      // Mantém o que já estava preenchido quando o campo novo vier vazio.
       const novaVenda  = idVenda || existente.ID_VENDA || '';
       const novaLoja   = loja    || existente.LOJA     || '';
-      const novoPedido = pedido  || existente.PEDIDO   || '';
-      const novaSku    = sku     || existente.SKU       || '';
+      const novoPedido = pedido  || existente.PEDIDO    || '';
+      const novoSku    = sku     || existente.SKU       || '';
       const novaBaixa  = pedido ? new Date().toLocaleString('pt-BR') : (existente.DATA_BAIXA || '');
       await sheetsUpdate(`'${sheetName}'!A${existente._row}:F${existente._row}`,
-        [[idEnvio, novaVenda, novaLoja, novoPedido, novaBaixa, novaSku]]);
+        [[idEnvio, novaVenda, novaLoja, novoPedido, novaBaixa, novoSku]]);
       toast('✅ Item já existia — atualizado em vez de duplicar!');
     } else {
       await sheetsAppend(sheetName, [idEnvio, idVenda, loja, pedido, '', sku]);
       toast('✅ Item adicionado!');
     }
     fecharModalAvulso();
+    // Limpa campos
     ['av_idEnvio','av_idVenda','av_loja','av_pedido','av_sku'].forEach(id => document.getElementById(id).value = '');
     carregarLista(avulsoTab);
   } catch(e) {
@@ -791,8 +796,8 @@ function abrirModalEditar(item, tab) {
   document.getElementById('ed_idVenda').value  = item.ID_VENDA  || '';
   document.getElementById('ed_loja').value     = item.LOJA      || '';
   document.getElementById('ed_pedido').value   = item.PEDIDO    || '';
-  document.getElementById('ed_sku').value      = item.SKU       || '';
   document.getElementById('ed_dataBaixa').value= item.DATA_BAIXA|| '';
+  document.getElementById('ed_sku').value      = item.SKU       || '';
   document.getElementById('overlayEditar').classList.add('show');
 }
 
@@ -807,8 +812,8 @@ async function salvarEdicao() {
   const venda  = document.getElementById('ed_idVenda').value.trim();
   const loja   = document.getElementById('ed_loja').value.trim();
   const pedido = document.getElementById('ed_pedido').value.trim();
-  const sku    = document.getElementById('ed_sku').value.trim();
   const baixa  = document.getElementById('ed_dataBaixa').value.trim();
+  const sku    = document.getElementById('ed_sku').value.trim();
   if (!envio) { toast('ID_ENVIO não pode ficar vazio!'); return; }
   toast('Salvando...');
   try {
