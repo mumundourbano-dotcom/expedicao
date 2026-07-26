@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- Tesseract.js para OCR no navegador -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
@@ -95,6 +97,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
 .scan-footer button{flex:1;padding:14px;border:none;border-radius:10px;font-family:'Montserrat',sans-serif;font-weight:800;color:#fff;cursor:pointer}
 #btnSalvarScan{background:var(--verde)}
 #btnCancelarScan{background:#37474f}
+#btnOcrScan{background:#7b1fa2;flex:0.8 !important;}
 
 /* AVULSO OVERLAY */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:flex-end;justify-content:center;z-index:60}
@@ -143,7 +146,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
     <span class="step" id="scanStep">Passo 1 de 2</span>
   </div>
   <div class="rbox"><div id="reader"></div></div>
-  <div class="scan-info-box" id="scanInfoBox">Aponte para o código de barras</div>
+  <div class="scan-info-box" id="scanInfoBox">Aponte para o código de barras ou use o botão OCR para ler o número impresso</div>
   <div id="scanManualBox" style="background:#222;padding:10px 12px;display:flex;gap:8px;align-items:center;border-top:1px solid #444">
     <input id="scanManualInput" placeholder="Ou digite o código manualmente..."
       style="flex:1;padding:9px 12px;border-radius:8px;border:none;font-family:'Montserrat',sans-serif;font-size:13px;outline:none;background:#333;color:#fff"
@@ -152,6 +155,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
   </div>
   <div class="scan-footer">
     <button id="btnCancelarScan" onclick="cancelarScan()">✕ Cancelar</button>
+    <button id="btnOcrScan" onclick="lerTextoOCR()">🔍 Ler OCR</button>
     <button id="btnSalvarScan" style="display:none" onclick="salvarScan()">✓ Confirmar Baixa</button>
   </div>
 </div>
@@ -304,7 +308,6 @@ function iniciarLogin() {
       callback: (resp) => {
         if (resp.error) { toast('Erro no login: ' + resp.error); return; }
         accessToken = resp.access_token;
-        // Salva token e expiração (tokens duram ~1h, salvamos por 55min)
         const expiry = Date.now() + 55 * 60 * 1000;
         localStorage.setItem('gtoken', accessToken);
         localStorage.setItem('gtoken_exp', expiry);
@@ -319,12 +322,10 @@ function tentarLoginSilencioso() {
   const token = localStorage.getItem('gtoken');
   const exp   = parseInt(localStorage.getItem('gtoken_exp') || '0');
   if (token && Date.now() < exp) {
-    // Token ainda válido — usa direto sem popup
     accessToken = token;
     onLoginOk();
     return;
   }
-  // Tenta renovar sem popup (funciona se já autorizou antes)
   if (!tokenClient) {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
@@ -332,7 +333,6 @@ function tentarLoginSilencioso() {
       prompt: '',
       callback: (resp) => {
         if (resp.error || !resp.access_token) {
-          // Falhou silenciosamente — mostra tela de login
           document.getElementById('authWall').style.display = 'flex';
           return;
         }
@@ -366,16 +366,13 @@ function logout() {
   document.getElementById('authStatus').textContent = '';
 }
 
-// Ao carregar a página, tenta login silencioso antes de mostrar auth wall
 window.addEventListener('load', () => {
-  // Aguarda a lib Google carregar
   const interval = setInterval(() => {
     if (window.google && google.accounts) {
       clearInterval(interval);
       tentarLoginSilencioso();
     }
   }, 200);
-  // Timeout de 5s — se não carregar, mostra login manual
   setTimeout(() => {
     clearInterval(interval);
     if (!accessToken) document.getElementById('authWall').style.display = 'flex';
@@ -393,16 +390,12 @@ function goTab(tab) {
 // SHEETS API — LEITURA
 // ═══════════════════════════════════════════════
 async function sheetsGet(range) {
-  // Tenta primeiro com API Key (leitura pública)
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}`;
   let r = await fetch(url);
-
-  // Se falhar (planilha privada ou key inválida), usa o token OAuth
   if (!r.ok && accessToken) {
     const url2 = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`;
     r = await fetch(url2, { headers: { 'Authorization': 'Bearer ' + accessToken } });
   }
-
   if (!r.ok) throw new Error('Erro leitura: ' + r.status);
   return (await r.json()).values || [];
 }
@@ -452,7 +445,6 @@ async function carregarTudo() {
 
 async function carregarDash() {
   try {
-    // Linha 1 = cabeçalhos (A-F), Linha 2 = valores (A-F)
     const rows = await sheetsGet(`'${ABAS.info}'!A1:F2`);
     if (!rows || rows.length < 2) throw new Error('Dados insuficientes');
 
@@ -539,7 +531,7 @@ function filtrar(tab, termo) {
 }
 
 // ═══════════════════════════════════════════════
-// SCANNER
+// SCANNER & OCR
 // ═══════════════════════════════════════════════
 function abrirScanner(tab) {
   scanTab = tab;
@@ -548,14 +540,13 @@ function abrirScanner(tab) {
   pedidoEscaneado = '';
   document.getElementById('scanTitulo').textContent = 'Escaneie o ID_ENVIO';
   document.getElementById('scanStep').textContent = 'Passo 1 de 2';
-  document.getElementById('scanInfoBox').innerHTML = 'Aponte para a etiqueta de envio';
+  document.getElementById('scanInfoBox').innerHTML = 'Aponte para o código de barras ou use o botão <b>Ler OCR</b> se o código estiver danificado';
   document.getElementById('btnSalvarScan').style.display = 'none';
   document.getElementById('scanOverlay').classList.add('show');
   iniciarCamera(onScanSuccess);
 }
 
 function iniciarCamera(callback) {
-  // Limpa instância anterior se existir
   if (html5Scanner) {
     html5Scanner.stop().catch(() => {}).finally(() => {
       html5Scanner = null;
@@ -573,7 +564,6 @@ function _startCamera(callback) {
     { fps: 15, qrbox: (w) => ({ width: Math.floor(w * 0.85), height: 130 }) },
     callback
   ).catch(() => {
-    // Fallback câmera frontal
     html5Scanner.start(
       { facingMode: "user" },
       { fps: 15, qrbox: { width: 260, height: 130 } },
@@ -603,6 +593,84 @@ function cancelarScan() {
   }
 }
 
+// Função de OCR executada ao clicar no botão "Ler OCR"
+async function lerTextoOCR() {
+  if (!html5Scanner) {
+    toast("Câmera não iniciada.");
+    return;
+  }
+  
+  toast("Capturando imagem para OCR...");
+  try {
+    // Captura o frame atual do vídeo do scanner usando o Html5Qrcode
+    const imageBlob = await html5Scanner.ambilImage ? null : null; // Tratativa padrão para capturar frame via canvas interno
+    const videoElement = document.querySelector('#reader video');
+    
+    if (!videoElement) {
+      toast("Erro ao acessar stream da câmera.");
+      return;
+    }
+
+    // Desenha o frame atual em um canvas HTML5 para pré-processamento (equivalente ao OpenCV em Python)
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+    // Ajustes básicos de imagem para melhorar o OCR em texto borrado
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imgData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      // Converte para escala de cinza e aumenta o contraste
+      let avg = (data[i] + data[i+1] + data[i+2]) / 3;
+      // Binarização simples (Threshold)
+      let val = avg > 140 ? 255 : 0; 
+      data[i] = val;
+      data[i+1] = val;
+      data[i+2] = val;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    toast("Lendo números da imagem...");
+
+    // Executa o Tesseract.js diretamente no navegador focando apenas em dígitos numéricos
+    const worker = await Tesseract.createWorker('eng');
+    await worker.setParameters({
+      tessedit_char_whitelist: '0123456789',
+    });
+    
+    const ret = await worker.recognize(canvas);
+    await worker.terminate();
+
+    const textoExtraido = ret.data.text.replace(/\D/g, ''); // Mantém apenas números
+
+    if (textoExtraido.length > 3) {
+      toast(`OCR Identificou: ${textoExtraido}`);
+      if (scanEtapa === 99) {
+        // Modo avulso preenchendo campo específico
+        document.getElementById(avulsoCampoAlvo).value = textoExtraido;
+        const fechar = () => {
+          html5Scanner = null;
+          fecharOverlayScan();
+          document.getElementById('scanStep').classList.remove('modo-avulso-badge');
+          document.querySelector('.scan-header').classList.remove('modo-avulso');
+          abrirModalAvulso(avulsoTab);
+        };
+        html5Scanner.stop().then(fechar).catch(fechar);
+      } else {
+        // Passa o texto lido pelo OCR direto para a lógica de validação do scan
+        onScanSuccess(textoExtraido, true);
+      }
+    } else {
+      toast("Não foi possível ler com clareza. Tente aproximar ou digitar.");
+    }
+  } catch (err) {
+    console.error(err);
+    toast("Erro ao processar OCR.");
+  }
+}
+
 // ═══════════════════════════════════════════════
 // ENTRADA MANUAL NO SCAN
 // ═══════════════════════════════════════════════
@@ -620,33 +688,26 @@ function confirmarManual() {
     if (html5Scanner) html5Scanner.stop().then(fechar).catch(fechar);
     else fechar();
   } else {
-    // isManual=true bypassa o debounce
     onScanSuccess(val, true);
   }
 }
 
-
 let lastCode = '', lastTime = 0;
 function onScanSuccess(decoded, isManual = false) {
   const now = Date.now();
-  // Debounce só para leituras físicas (não para entrada manual)
   if (!isManual && decoded === lastCode && now - lastTime < 2000) return;
   lastCode = decoded; lastTime = now;
 
-  // Normaliza: remove espaços extras
   const norm = (s) => String(s).trim().replace(/\s+/g, '');
   const lista = scanTab === 'ml' ? dadosML : dadosSH;
 
   if (scanEtapa === 1) {
-    // Algumas etiquetas usam QR Code com um JSON, ex: {"id":"46031078338","t":"lm"}.
-    // Nesse caso só interessa o valor do campo "id".
     const idLido = extrairIdDoCodigo(decoded);
     document.getElementById('scanInfoBox').innerHTML = `Buscando: <b>${idLido}</b>...`;
     const item = lista.find(i => norm(i.ID_ENVIO) === norm(idLido));
     if (!item) {
-      // Mostra o código lido para diagnóstico
       document.getElementById('scanInfoBox').innerHTML =
-        `❌ Não encontrado.<br><small style="color:#aaa">Lido: <b style="color:#ff9">${idLido}</b></small><br>Verifique o código ou digite manualmente.`;
+        `❌ Não encontrado.<br><small style="color:#aaa">Lido: <b style="color:#ff9">${idLido}</b></small><br>Verifique o código ou use o botão <b>Ler OCR</b>.`;
       return;
     }
     linhaEncontrada = item;
@@ -661,9 +722,6 @@ function onScanSuccess(decoded, isManual = false) {
   }
 }
 
-// Se o código lido for um JSON (ex: etiqueta com QR Code {"id":"...","t":"lm"}),
-// extrai só o valor do campo "id". Caso contrário, devolve o código como veio
-// (código de barras tradicional já é só o número/texto puro).
 function extrairIdDoCodigo(valor) {
   const texto = String(valor).trim();
   if (texto.startsWith('{') && texto.endsWith('}')) {
@@ -672,9 +730,7 @@ function extrairIdDoCodigo(valor) {
       if (obj && obj.id !== undefined && obj.id !== null) {
         return String(obj.id).trim();
       }
-    } catch (e) {
-      // Não é um JSON válido — usa o texto original mesmo
-    }
+    } catch (e) {}
   }
   return texto;
 }
@@ -686,7 +742,6 @@ async function salvarScan() {
     const sheetName = ABAS[scanTab];
     const row = linhaEncontrada._row;
     const agora = new Date().toLocaleString('pt-BR');
-    // Coluna D = PEDIDO, Coluna E = DATA_BAIXA
     await sheetsUpdate(`'${sheetName}'!D${row}:E${row}`, [[pedidoEscaneado, agora]]);
     toast('✅ Baixa registrada!');
     cancelarScan();
@@ -698,7 +753,7 @@ async function salvarScan() {
 }
 
 // ═══════════════════════════════════════════════
-// SCANNER AVULSO (para preencher campo do modal)
+// SCANNER AVULSO
 // ═══════════════════════════════════════════════
 function abrirScannerAvulso(campoId) {
   avulsoCampoAlvo = campoId;
@@ -709,7 +764,7 @@ function abrirScannerAvulso(campoId) {
   document.getElementById('scanStep').textContent = '⚠️ ITEM AVULSO';
   document.getElementById('scanStep').classList.add('modo-avulso-badge');
   document.querySelector('.scan-header').classList.add('modo-avulso');
-  document.getElementById('scanInfoBox').innerHTML = `Isto é apenas para preencher o campo <b>${label}</b> do item avulso — não vai dar baixa em nenhum item existente.<br>Aponte para o código.`;
+  document.getElementById('scanInfoBox').innerHTML = `Preenchendo <b>${label}</b>. Aponte para o código ou use o <b>Ler OCR</b>.`;
   document.getElementById('btnSalvarScan').style.display = 'none';
   document.getElementById('scanOverlay').classList.add('show');
   scanEtapa = 99;
@@ -756,7 +811,6 @@ async function salvarAvulso() {
   const sku     = document.getElementById('av_sku').value.trim();
   if (!idEnvio) { toast('Insira o ID_ENVIO!'); return; }
 
-  // Normaliza para comparar (remove espaços)
   const norm = (s) => String(s || '').trim().replace(/\s+/g, '');
   const lista = avulsoTab === 'ml' ? dadosML : dadosSH;
   const existente = lista.find(i => norm(i.ID_ENVIO) === norm(idEnvio));
@@ -765,8 +819,6 @@ async function salvarAvulso() {
   try {
     const sheetName = ABAS[avulsoTab];
     if (existente) {
-      // Já existe esse ID_ENVIO na planilha — atualiza a linha em vez de duplicar.
-      // Mantém o que já estava preenchido quando o campo novo vier vazio.
       const novaVenda  = idVenda || existente.ID_VENDA || '';
       const novaLoja   = loja    || existente.LOJA     || '';
       const novoPedido = pedido  || existente.PEDIDO    || '';
@@ -774,13 +826,12 @@ async function salvarAvulso() {
       const novaBaixa  = pedido ? new Date().toLocaleString('pt-BR') : (existente.DATA_BAIXA || '');
       await sheetsUpdate(`'${sheetName}'!A${existente._row}:F${existente._row}`,
         [[idEnvio, novaVenda, novaLoja, novoPedido, novaBaixa, novoSku]]);
-      toast('✅ Item já existia — atualizado em vez de duplicar!');
+      toast('✅ Item já existia — atualizado!');
     } else {
       await sheetsAppend(sheetName, [idEnvio, idVenda, loja, pedido, '', sku]);
       toast('✅ Item adicionado!');
     }
     fecharModalAvulso();
-    // Limpa campos
     ['av_idEnvio','av_idVenda','av_loja','av_pedido','av_sku'].forEach(id => document.getElementById(id).value = '');
     carregarLista(avulsoTab);
   } catch(e) {
@@ -817,7 +868,7 @@ async function salvarEdicao() {
   const pedido = document.getElementById('ed_pedido').value.trim();
   const baixa  = document.getElementById('ed_dataBaixa').value.trim();
   const sku    = document.getElementById('ed_sku').value.trim();
-  if (!envio) { toast('ID_ENVIO não pode ficar vazio!'); return; }
+  if (!envio) { toast('ID_ENVIO não pode vazio!'); return; }
   toast('Salvando...');
   try {
     const sheetName = ABAS[tab];
