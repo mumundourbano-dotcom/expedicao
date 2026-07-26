@@ -97,7 +97,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
 .scan-footer button{flex:1;padding:14px;border:none;border-radius:10px;font-family:'Montserrat',sans-serif;font-weight:800;color:#fff;cursor:pointer}
 #btnSalvarScan{background:var(--verde)}
 #btnCancelarScan{background:#37474f}
-#btnOcrScan{background:#7b1fa2;flex:0.8 !important;}
+#btnScan{background:#7b1fa2;flex:0.8 !important;}
 
 /* AVULSO OVERLAY */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:flex-end;justify-content:center;z-index:60}
@@ -146,7 +146,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
     <span class="step" id="scanStep">Passo 1 de 2</span>
   </div>
   <div class="rbox"><div id="reader"></div></div>
-  <div class="scan-info-box" id="scanInfoBox">Aponte para o código de barras ou use o botão OCR para ler o número impresso</div>
+  <div class="scan-info-box" id="scanInfoBox">Aponte para o código de barras ou use o botão  para ler o número impresso</div>
   <div id="scanManualBox" style="background:#222;padding:10px 12px;display:flex;gap:8px;align-items:center;border-top:1px solid #444">
     <input id="scanManualInput" placeholder="Ou digite o código manualmente..."
       style="flex:1;padding:9px 12px;border-radius:8px;border:none;font-family:'Montserrat',sans-serif;font-size:13px;outline:none;background:#333;color:#fff"
@@ -155,7 +155,7 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
   </div>
   <div class="scan-footer">
     <button id="btnCancelarScan" onclick="cancelarScan()">✕ Cancelar</button>
-    <button id="btnOcrScan" onclick="lerTextoOCR()">🔍 Ler OCR</button>
+    <button id="btnScan" onclick="lerTexto()">🔍 Ler OCR</button>
     <button id="btnSalvarScan" style="display:none" onclick="salvarScan()">✓ Confirmar Baixa</button>
   </div>
 </div>
@@ -602,8 +602,6 @@ async function lerTextoOCR() {
   
   toast("Capturando imagem para OCR...");
   try {
-    // Captura o frame atual do vídeo do scanner usando o Html5Qrcode
-    const imageBlob = await html5Scanner.ambilImage ? null : null; // Tratativa padrão para capturar frame via canvas interno
     const videoElement = document.querySelector('#reader video');
     
     if (!videoElement) {
@@ -611,30 +609,38 @@ async function lerTextoOCR() {
       return;
     }
 
-    // Desenha o frame atual em um canvas HTML5 para pré-processamento (equivalente ao OpenCV em Python)
+    // Cria o canvas
     const canvas = document.createElement('canvas');
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    
+    // Define uma área de corte: pega apenas 80% da largura e 25% da altura (bem no centro)
+    const cropW = videoElement.videoWidth * 0.8;
+    const cropH = videoElement.videoHeight * 0.25;
+    const startX = (videoElement.videoWidth - cropW) / 2;
+    const startY = (videoElement.videoHeight - cropH) / 2;
 
-    // Ajustes básicos de imagem para melhorar o OCR em texto borrado
+    canvas.width = cropW;
+    canvas.height = cropH;
+    const ctx = canvas.getContext('2d');
+
+    // Desenha apenas a região recortada no canvas (ignora as bordas e o resto da imagem)
+    ctx.drawImage(videoElement, startX, startY, cropW, cropH, 0, 0, cropW, cropH);
+
+    // Ajustes de imagem (Aumentar contraste e Binarizar)
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      // Converte para escala de cinza e aumenta o contraste
       let avg = (data[i] + data[i+1] + data[i+2]) / 3;
-      // Binarização simples (Threshold)
-      let val = avg > 140 ? 255 : 0; 
+      // Ajuste fino no threshold (120) para evitar manchas pretas virarem números
+      let val = avg > 120 ? 255 : 0; 
       data[i] = val;
       data[i+1] = val;
       data[i+2] = val;
     }
     ctx.putImageData(imgData, 0, 0);
 
-    toast("Lendo números da imagem...");
+    toast("Lendo números na área central...");
 
-    // Executa o Tesseract.js diretamente no navegador focando apenas em dígitos numéricos
+    // Executa o Tesseract focado na faixa central
     const worker = await Tesseract.createWorker('eng');
     await worker.setParameters({
       tessedit_char_whitelist: '0123456789',
@@ -645,10 +651,10 @@ async function lerTextoOCR() {
 
     const textoExtraido = ret.data.text.replace(/\D/g, ''); // Mantém apenas números
 
-    if (textoExtraido.length > 3) {
+    // Valida se encontrou algo
+    if (textoExtraido.length >= 3) {
       toast(`OCR Identificou: ${textoExtraido}`);
       if (scanEtapa === 99) {
-        // Modo avulso preenchendo campo específico
         document.getElementById(avulsoCampoAlvo).value = textoExtraido;
         const fechar = () => {
           html5Scanner = null;
@@ -659,18 +665,16 @@ async function lerTextoOCR() {
         };
         html5Scanner.stop().then(fechar).catch(fechar);
       } else {
-        // Passa o texto lido pelo OCR direto para a lógica de validação do scan
         onScanSuccess(textoExtraido, true);
       }
     } else {
-      toast("Não foi possível ler com clareza. Tente aproximar ou digitar.");
+      toast("Leitura falhou. Centralize apenas os números na tela e tente de novo.");
     }
   } catch (err) {
     console.error(err);
     toast("Erro ao processar OCR.");
   }
 }
-
 // ═══════════════════════════════════════════════
 // ENTRADA MANUAL NO SCAN
 // ═══════════════════════════════════════════════
