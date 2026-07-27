@@ -608,25 +608,28 @@ function cancelarScan() {
 }
 
 // ═══════════════════════════════════════════════
-// OCR AUTOMÁTICO EM SEGUNDO PLANO
+// OCR AUTOMÁTICO - OTIMIZADO PARA ETIQUETAS
 // ═══════════════════════════════════════════════
 async function initOcrWorker() {
   if (!ocrWorker) {
-    ocrWorker = await Tesseract.createWorker('eng');
-    await ocrWorker.setParameters({ tessedit_char_whitelist: '0123456789' });
+    ocrWorker = await Tesseract.createWorker('por');
+    // Restringe os caracteres aceitos para ler rápido e sem inventar números
+    await ocrWorker.setParameters({
+      tessedit_char_whitelist: 'pedidoPEDIDO0123456789:- ',
+      tessedit_pageseg_mode: '6', // Trata a imagem como um bloco de texto contínuo
+    });
   }
 }
 
 async function iniciarOcrAutomatico() {
   pararOcrAutomatico();
-  await initOcrWorker(); // Prepara a IA de leitura uma única vez (evita travamentos)
+  await initOcrWorker();
   
-  // A cada 2 segundos, tenta ler o que está no centro da tela
   ocrInterval = setInterval(() => {
     if (!isOcrProcessing && html5Scanner) {
       tentarLeituraOCRBackground();
     }
-  }, 2000);
+  }, 1500); // Tenta a cada 1.5 segundos
 }
 
 function pararOcrAutomatico() {
@@ -644,49 +647,66 @@ async function tentarLeituraOCRBackground() {
     const videoElement = document.querySelector('#reader video');
     if (!videoElement) { isOcrProcessing = false; return; }
 
+    // Captura a metade SUPERIOR do vídeo (onde o "pedido: XXXX" costuma ficar nas etiquetas)
     const canvas = document.createElement('canvas');
-    const cropW = videoElement.videoWidth * 0.8;
-    const cropH = videoElement.videoHeight * 0.25;
+    const cropW = videoElement.videoWidth * 0.9;
+    const cropH = videoElement.videoHeight * 0.55; 
     const startX = (videoElement.videoWidth - cropW) / 2;
-    const startY = (videoElement.videoHeight - cropH) / 2;
+    const startY = videoElement.videoHeight * 0.05; // Pega a partir do topo
 
-    canvas.width = cropW;
-    canvas.height = cropH;
+    const scale = 2; // Dobra a resolução sem distorcer
+    canvas.width = cropW * scale;
+    canvas.height = cropH * scale;
+
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoElement, startX, startY, cropW, cropH, 0, 0, cropW, cropH);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
+    // Desenha a região no canvas com a proporção exata
+    ctx.drawImage(videoElement, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+    // Ajuste de contraste em escala de cinza (preserva a nitidez da impressão térmica)
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      let avg = (data[i] + data[i+1] + data[i+2]) / 3;
-      let val = avg > 120 ? 255 : 0; 
-      data[i] = val;
-      data[i+1] = val;
-      data[i+2] = val;
+      let gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      // Aumenta o contraste levemente
+      gray = (gray - 128) * 1.5 + 128;
+      gray = Math.min(255, Math.max(0, gray));
+      data[i] = gray;
+      data[i+1] = gray;
+      data[i+2] = gray;
     }
     ctx.putImageData(imgData, 0, 0);
 
     const ret = await ocrWorker.recognize(canvas);
-    const textoExtraido = ret.data.text.replace(/\D/g, ''); 
+    const textoLido = ret.data.text;
 
-    // Se encontrou algo parecido com um código (+ de 4 dígitos), aciona o scanner
-    if (textoExtraido.length >= 4) {
-      toast(`OCR Automático leu: ${textoExtraido}`);
-      
-      if (scanEtapa === 99) {
-        document.getElementById(avulsoCampoAlvo).value = textoExtraido;
-        const fechar = () => {
-          html5Scanner = null;
-          fecharOverlayScan();
-          abrirModalAvulso(avulsoTab);
-        };
-        html5Scanner.stop().then(fechar).catch(fechar);
-      } else {
-        onScanSuccess(textoExtraido, true);
+    // Busca a palavra "pedido" e pega os números que vêm logo após ela
+    const match = textoLido.match(/pedido[^\d]*(\d+)/i);
+
+    if (match && match[1]) {
+      const numeroExtraido = match[1];
+
+      // Valida se capturou um número real
+      if (numeroExtraido.length >= 3) {
+        toast(`OCR Leu Pedido: ${numeroExtraido}`);
+
+        if (scanEtapa === 99) {
+          document.getElementById(avulsoCampoAlvo).value = numeroExtraido;
+          const fechar = () => {
+            html5Scanner = null;
+            fecharOverlayScan();
+            abrirModalAvulso(avulsoTab);
+          };
+          html5Scanner.stop().then(fechar).catch(fechar);
+        } else {
+          onScanSuccess(numeroExtraido, true);
+        }
       }
     }
   } catch (err) {
-    // Falhas silenciosas (borrões, foco ruim) não disparam mensagens na tela
+    // Continua tentando sem interromper o fluxo
   }
   isOcrProcessing = false;
 }
