@@ -607,13 +607,17 @@ function cancelarScan() {
   }
 }
 // ═══════════════════════════════════════════════
-// OCR AUTOMÁTICO - MODO DIRETO (SEM FILTROS DESTRUTIVOS)
+// OCR AUTOMÁTICO - MODO ESTÁVEL (SEM VAZAMENTO DE MEMÓRIA)
 // ═══════════════════════════════════════════════
+let ocrCanvas = null;
+let ocrCtx = null;
+let ocrTimeoutId = null;
+
 async function initOcrWorker() {
   if (!ocrWorker) {
     ocrWorker = await Tesseract.createWorker('por');
     await ocrWorker.setParameters({
-      tessedit_pageseg_mode: '11', // PSM 11: Busca texto esparso/isolado (ideal para etiquetas)
+      tessedit_pageseg_mode: '11',
     });
   }
 }
@@ -622,16 +626,30 @@ async function iniciarOcrAutomatico() {
   pararOcrAutomatico();
   await initOcrWorker();
   
-  ocrInterval = setInterval(() => {
-    if (!isOcrProcessing && html5Scanner) {
+  // Reutiliza o mesmo Canvas na RAM para não estourar a memória do celular
+  if (!ocrCanvas) {
+    ocrCanvas = document.createElement('canvas');
+    ocrCtx = ocrCanvas.getContext('2d', { willReadFrequently: true });
+  }
+
+  isOcrProcessing = false;
+  agendarProximaLeitura(500); // Primeira tentativa
+}
+
+function agendarProximaLeitura(ms = 1200) {
+  if (ocrTimeoutId) clearTimeout(ocrTimeoutId);
+  ocrTimeoutId = setTimeout(() => {
+    if (html5Scanner) {
       tentarLeituraOCRBackground();
     }
-  }, 1200); // Tenta a cada 1.2 segundos
+  }, ms);
 }
 
 function pararOcrAutomatico() {
-  if (ocrInterval) clearInterval(ocrInterval);
-  ocrInterval = null;
+  if (ocrTimeoutId) clearTimeout(ocrTimeoutId);
+  ocrTimeoutId = null;
+  isOcrProcessing = false;
+
   if (ocrWorker) {
     ocrWorker.terminate();
     ocrWorker = null;
@@ -639,49 +657,48 @@ function pararOcrAutomatico() {
 }
 
 async function tentarLeituraOCRBackground() {
+  // Impede execuções simultâneas
+  if (isOcrProcessing) return;
   isOcrProcessing = true;
+
   try {
     const videoElement = document.querySelector('#reader video');
     if (!videoElement || videoElement.readyState !== 4) { 
-      isOcrProcessing = false; 
       return; 
     }
 
-    // Pega a resolução REAL da câmera do celular (ex: 1920x1080)
     const realW = videoElement.videoWidth;
     const realH = videoElement.videoHeight;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = realW;
-    canvas.height = realH;
+    if (realW === 0 || realH === 0) return;
 
-    const ctx = canvas.getContext('2d');
-    // Desenha o frame limpo da câmera, sem alterar pixels/contraste
-    ctx.drawImage(videoElement, 0, 0, realW, realH);
+    // Atualiza as dimensões apenas se mudarem
+    if (ocrCanvas.width !== realW || ocrCanvas.height !== realH) {
+      ocrCanvas.width = realW;
+      ocrCanvas.height = realH;
+    }
 
-    const ret = await ocrWorker.recognize(canvas);
-    const textoBruto = ret.data.text || "";
+    // Desenha o quadro atual da câmera sem alocar nova memória
+    ocrCtx.drawImage(videoElement, 0, 0, realW, realH);
 
-    // Exibe no console o texto cru lido para diagnóstico
-    console.log("OCR Texto Bruto Lido:", textoBruto);
+    const ret = await ocrWorker.recognize(ocrCanvas);
+    const textoBruto = ret.data ? ret.data.text : "";
 
     let numeroExtraido = null;
 
-    // 1. Procura variações da palavra "pedido" com tolerância a erros (ex: pedido, ped, pedido:)
+    // 1. Procura pela palavra "pedido" e captura os dígitos subsequentes
     const matchPedido = textoBruto.match(/(?:pedido|ped|pdd|pedid)[\s\:\-]*(\d+)/i);
     if (matchPedido && matchPedido[1]) {
       numeroExtraido = matchPedido[1];
     } 
-    // 2. Se não achou a palavra "pedido", busca qualquer número de 4 a 6 dígitos solto na etiqueta
+    // 2. Fallback: Procura qualquer sequência numérica de 4 a 6 dígitos
     else {
       const numerosSoltos = textoBruto.match(/\b\d{4,6}\b/g);
       if (numerosSoltos && numerosSoltos.length > 0) {
-        // Pega o primeiro número de 4 a 6 dígitos encontrado
         numeroExtraido = numerosSoltos[0];
       }
     }
 
-    // Se encontrou o número da etiqueta
     if (numeroExtraido && numeroExtraido.length >= 3) {
       toast(`✅ OCR Pedido: ${numeroExtraido}`);
 
@@ -693,25 +710,27 @@ async function tentarLeituraOCRBackground() {
           abrirModalAvulso(avulsoTab);
         };
         html5Scanner.stop().then(fechar).catch(fechar);
+        return; // Interrompe novos agendamentos pois concluiu
       } else {
         onScanSuccess(numeroExtraido, true);
       }
     } else if (textoBruto.trim().length > 0) {
-      // Atualiza o rodapé com o que a câmera está conseguindo ler no momento
       const preview = textoBruto.replace(/\n/g, ' ').substring(0, 35);
-      document.getElementById('scanInfoBox').innerHTML = `<small style="color:#aaa">Lendo: "${preview}..."</small>`;
+      const infoBox = document.getElementById('scanInfoBox');
+      if (infoBox) {
+        infoBox.innerHTML = `<small style="color:#aaa">Lendo: "${preview}..."</small>`;
+      }
     }
   } catch (err) {
     console.error("Erro OCR:", err);
+  } finally {
+    // Bloco vital: Libera a trava independente de erro e agenda o próximo ciclo
+    isOcrProcessing = false;
+    if (html5Scanner) {
+      agendarProximaLeitura(1200);
+    }
   }
-  isOcrProcessing = false;
 }
-
-// Para o botão de OCR manual se o usuário ainda quiser clicar:
-function lerTextoOCR() {
-  toast("O OCR agora é automático! Apenas centralize os números corrompidos.");
-}
-
 // ═══════════════════════════════════════════════
 // ENTRADA MANUAL NO SCAN
 // ═══════════════════════════════════════════════
