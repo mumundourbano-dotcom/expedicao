@@ -615,9 +615,15 @@ let ocrTimeoutId = null;
 
 async function initOcrWorker() {
   if (!ocrWorker) {
-    ocrWorker = await Tesseract.createWorker('por');
+    // 'eng' carrega mais rápido que 'por' e, como a palavra "pedido" não tem
+    // acento, continuamos reconhecendo o rótulo mesmo assim — só que agora
+    // com um alfabeto bem menor pro Tesseract escolher, o que reduz confusão
+    // entre dígitos parecidos (0/O, 8/B, 1/I) e acelera muito o reconhecimento.
+    ocrWorker = await Tesseract.createWorker('eng');
     await ocrWorker.setParameters({
-      tessedit_pageseg_mode: '11',
+      tessedit_pageseg_mode: '7', // linha única — o recorte já isola a faixa do número
+      tessedit_char_whitelist: '0123456789PEDIDOpedidoNnUuMmEeRrOo:.-/ ',
+      preserve_interword_spaces: '1',
     });
   }
 }
@@ -634,6 +640,49 @@ async function iniciarOcrAutomatico() {
 
   isOcrProcessing = false;
   agendarProximaLeitura(500); // Primeira tentativa
+}
+
+// Calcula, em pixels nativos do vídeo, a região aproximada correspondente
+// à caixa de mira (qrbox) mostrada na tela. Assim o OCR analisa só a faixa
+// onde o usuário está apontando, em vez do frame inteiro — é o principal
+// ganho de velocidade, já que a área processada fica bem menor.
+function obterRegiaoRecorte(video) {
+  const container = video.parentElement;
+  const contW = container.clientWidth || video.clientWidth || 1;
+  const contH = container.clientHeight || video.clientHeight || 1;
+
+  const boxW = Math.floor(contW * 0.85);
+  const boxH = 130;
+
+  const fracW = Math.min(boxW / contW, 1);
+  const fracH = Math.min(boxH / contH, 1);
+
+  const nativeW = video.videoWidth;
+  const nativeH = video.videoHeight;
+
+  // Margem extra (15%/40%) pra não cortar o número por pouco se a mira
+  // não estiver perfeitamente alinhada
+  const cropW = Math.min(nativeW, Math.floor(nativeW * fracW * 1.15));
+  const cropH = Math.min(nativeH, Math.floor(nativeH * fracH * 1.4));
+  const cropX = Math.floor((nativeW - cropW) / 2);
+  const cropY = Math.floor((nativeH - cropH) / 2);
+
+  return { cropX, cropY, cropW, cropH };
+}
+
+// Converte pra escala de cinza e aplica limiarização (threshold) simples.
+// Isso aumenta bastante a precisão em condições de luz variável, reflexo
+// do plástico da etiqueta, sombra, etc.
+function binarizarCanvas(ctx, w, h) {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const d = imgData.data;
+  const THRESHOLD = 150;
+  for (let i = 0; i < d.length; i += 4) {
+    const cinza = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+    const v = cinza > THRESHOLD ? 255 : 0;
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  ctx.putImageData(imgData, 0, 0);
 }
 
 function agendarProximaLeitura(ms = 1200) {
@@ -672,14 +721,28 @@ async function tentarLeituraOCRBackground() {
 
     if (realW === 0 || realH === 0) return;
 
-    // Atualiza as dimensões apenas se mudarem
-    if (ocrCanvas.width !== realW || ocrCanvas.height !== realH) {
-      ocrCanvas.width = realW;
-      ocrCanvas.height = realH;
+    // Só recorta a faixa onde o usuário está mirando (não o frame inteiro)
+    const { cropX, cropY, cropW, cropH } = obterRegiaoRecorte(videoElement);
+
+    // Amplia o recorte se ele for pequeno — o Tesseract lê muito melhor
+    // texto com pelo menos ~30-40px de altura de caractere
+    const ESCALA = cropH < 150 ? 2 : 1;
+    const destW = cropW * ESCALA;
+    const destH = cropH * ESCALA;
+
+    if (ocrCanvas.width !== destW || ocrCanvas.height !== destH) {
+      ocrCanvas.width = destW;
+      ocrCanvas.height = destH;
     }
 
-    // Desenha o quadro atual da câmera sem alocar nova memória
-    ocrCtx.drawImage(videoElement, 0, 0, realW, realH);
+    // Desenha só o recorte, já redimensionado, sem alocar nova memória extra
+    ocrCtx.drawImage(
+      videoElement,
+      cropX, cropY, cropW, cropH,
+      0, 0, destW, destH
+    );
+
+    binarizarCanvas(ocrCtx, destW, destH);
 
     const ret = await ocrWorker.recognize(ocrCanvas);
     const textoBruto = ret.data ? ret.data.text : "";
@@ -727,7 +790,7 @@ async function tentarLeituraOCRBackground() {
     // Bloco vital: Libera a trava independente de erro e agenda o próximo ciclo
     isOcrProcessing = false;
     if (html5Scanner) {
-      agendarProximaLeitura(1200);
+      agendarProximaLeitura(900);
     }
   }
 }
