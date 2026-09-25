@@ -57,6 +57,9 @@ nav.tabs button[data-tab="sh"].active{color:var(--sh-esc);border-bottom-color:va
 .card.ml-card .valor{color:var(--ml-esc)}
 .card.sh-card .valor{color:var(--sh-esc)}
 .card-section-title{grid-column:1/-1;font-size:12px;font-weight:700;color:#6b7785;text-transform:uppercase;margin-top:6px;padding-left:2px}
+.card.texto-info{text-align:left;cursor:pointer}
+.card.texto-info .rotulo{margin-top:0;margin-bottom:6px}
+.card.texto-info .valor{font-size:15px;font-weight:600;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
 /* LIST */
 .list-body{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px 10px 6px;gap:8px}
@@ -462,6 +465,21 @@ async function carregarDash() {
 
     const totalML = parseInt(v('TOTAL MERCADO'))||0;
     const totalSH = parseInt(v('TOTAL SHOPEE'))||0;
+
+    // Textos informativos (célula única, não cabeçalho/valor) — B4 e B5 da aba INFO
+    let codAmazzo = '—', codDome = '—';
+    try {
+      const codigosRows = await sheetsGet(`'${ABAS.info}'!B4:B5`);
+      codAmazzo = (codigosRows[0] && codigosRows[0][0]) || '—';
+      codDome   = (codigosRows[1] && codigosRows[1][0]) || '—';
+    } catch (e) {
+      console.error('Erro ao ler códigos B4:B5', e);
+    }
+    codigosInfo = [
+      { label: 'ML Amazzo', texto: codAmazzo },
+      { label: 'ML Dome',   texto: codDome }
+    ];
+
     document.getElementById('dashGrid').innerHTML = `
       <div class="card full"><div class="valor">${totalML + totalSH}</div><div class="rotulo">Total Geral</div></div>
       <div class="card-section-title">Mercado Livre</div>
@@ -472,11 +490,41 @@ async function carregarDash() {
       <div class="card sh-card"><div class="valor">${v('TOTAL SHOPEE')}</div><div class="rotulo">Total Shopee</div></div>
       <div class="card sh-card"><div class="valor">${v('SH DOME')}</div><div class="rotulo">SH Dome</div></div>
       <div class="card sh-card"><div class="valor">${v('SH AMAZZO')}</div><div class="rotulo">SH Amazzo</div></div>
+      <div class="card-section-title">Código</div>
+      <div class="card full texto-info" onclick="copiarCodigo(0)">
+        <div class="rotulo">ML Amazzo</div>
+        <div class="valor">${esc(codAmazzo)}</div>
+      </div>
+      <div class="card full texto-info" onclick="copiarCodigo(1)">
+        <div class="rotulo">ML Dome</div>
+        <div class="valor">${esc(codDome)}</div>
+      </div>
     `;
   } catch(e) {
     document.getElementById('dashGrid').innerHTML = '<div class="empty">Erro ao carregar indicadores.</div>';
     console.error(e);
   }
+}
+
+// Guarda os textos de B4/B5 pra permitir copiar ao tocar no card
+let codigosInfo = [];
+function copiarCodigo(i) {
+  const item = codigosInfo[i];
+  if (!item || !item.texto || item.texto === '—') return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(item.texto)
+      .then(() => toast(`✅ ${item.label} copiado!`))
+      .catch(() => toast('Não foi possível copiar.'));
+  }
+}
+
+// Escapa HTML pra exibir com segurança texto vindo da planilha
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 async function carregarLista(tab) {
